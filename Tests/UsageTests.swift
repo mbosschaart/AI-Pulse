@@ -2,6 +2,34 @@ import XCTest
 @testable import AIPulseCore
 
 final class UsageTests: XCTestCase {
+    func testConnectionHealthRequiresSuccessfulCurrentAutomaticReading() {
+        let now = Date(timeIntervalSince1970: 100000)
+        var reading = Reading(provider: .claude, value: 75, fetchedAt: now, state: .ready)
+        XCTAssertEqual(reading.connectionHealth(at: now), .current)
+        XCTAssertEqual(reading.connectionHealth(at: now.addingTimeInterval(901)), .needsRefresh)
+        reading.staleAfterSeconds = 3900
+        XCTAssertEqual(reading.connectionHealth(at: now.addingTimeInterval(1800)), .current)
+        for state in [ReadingState.failed, .unavailable] {
+            reading.state = state
+            XCTAssertEqual(reading.connectionHealth(at: now), .needsRefresh)
+        }
+        reading.state = .reconnect
+        XCTAssertEqual(reading.connectionHealth(at: now), .reconnect)
+        reading.state = .disconnected
+        XCTAssertEqual(reading.connectionHealth(at: now), .inactive)
+        reading.manual = true
+        XCTAssertEqual(reading.connectionHealth(at: now), .manual)
+        reading.manual = false
+        reading.state = .ready
+        reading.periodEnd = now
+        XCTAssertEqual(reading.connectionHealth(at: now), .needsRefresh)
+        reading.periodEnd = nil
+        reading.fetchedAt = nil
+        XCTAssertEqual(reading.connectionHealth(at: now), .needsRefresh)
+        reading.fetchedAt = now.addingTimeInterval(1)
+        XCTAssertEqual(reading.connectionHealth(at: now), .needsRefresh)
+    }
+
     func testUsageRefreshDefaultsAndChoices() {
         XCTAssertEqual(UsageRefreshInterval.saved(0), .hourly)
         XCTAssertEqual(UsageRefreshInterval.saved(-1), .hourly)

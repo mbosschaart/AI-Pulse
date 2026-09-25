@@ -5,7 +5,7 @@
 	<key>AIPulseAppGroup</key>
 	<string>$(DEVELOPMENT_TEAM).nl.martijn.aipulse</string>
 	<key>AIPulseDisplayVersion</key>
-	<string>1.1</string>
+	<string>1.2</string>
 	<key>CFBundleDisplayName</key>
 	<string>AI Pulse</string>
 	<key>CFBundleExecutable</key>

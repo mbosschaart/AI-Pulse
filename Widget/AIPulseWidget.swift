@@ -65,6 +65,7 @@ struct PulseWidgetView: View {
             }
         }.environment(\.liquidGlassCards, SnapshotStore.glassEnabled)
         .environment(\.glassCardStyle, GlassCardStyle(rawValue: SnapshotStore.glassStyle) ?? .standard)
+        .environment(\.connectionLEDVisibility, SnapshotStore.connectionLEDsEnabled)
         .containerBackground(for: .widget) {
             if !SnapshotStore.glassEnabled { Color(nsColor: .windowBackgroundColor) }
         }

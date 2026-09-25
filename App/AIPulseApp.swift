@@ -28,6 +28,7 @@ struct MainView: View {
     @EnvironmentObject var store: PulseStore
     @AppStorage("liquid-glass") private var liquidGlass = false
     @AppStorage("glass-card-style") private var glassStyle: GlassCardStyle = .standard
+    @AppStorage("connection-status-leds") private var connectionLEDs = true
     @StateObject private var interaction = DashboardInteraction()
     @AppStorage("dashboard-layout") private var layout: DashboardLayout = .cards
     var body: some View {
@@ -48,7 +49,7 @@ struct MainView: View {
                                 .padding(.horizontal, 10).padding(.vertical, 7)
                                 .contentShape(Rectangle())
                                 .contextMenu { dashboardMenu(provider: reading.provider) }
-                                .modifier(ProviderReordering(provider: reading.provider, snap: snap))
+                                .modifier(ProviderReordering(provider: reading.provider, snap: snap, activate: connectionAction(for: reading.provider)))
                         }
                     }
                     .padding(.trailing, 28).padding(.vertical, 3)
@@ -73,7 +74,7 @@ struct MainView: View {
                                                refreshAction: { refresh(provider) }, isRefreshing: store.busy.contains(provider))
                                         .frame(width: 220, height: 158)
                                         .contextMenu { dashboardMenu(provider: provider) }
-                                        .modifier(ProviderReordering(provider: provider, snap: snap))
+                                        .modifier(ProviderReordering(provider: provider, snap: snap, activate: connectionAction(for: provider)))
                                 }
                             }
                         }
@@ -98,6 +99,7 @@ struct MainView: View {
             syncAppearance()
         }
         .onChange(of: liquidGlass) { _, _ in syncAppearance() }
+        .onChange(of: connectionLEDs) { _, _ in syncAppearance() }
         .onChange(of: glassStyle) { _, _ in syncAppearance() }
         .contentShape(Rectangle())
         .contextMenu { dashboardMenu() }
@@ -112,7 +114,7 @@ struct MainView: View {
         } message: { Text(store.error ?? "") }
     }
     private func syncAppearance() {
-        do { try SnapshotStore.writeGlassEnabled(liquidGlass); try SnapshotStore.writeGlassStyle(glassStyle.rawValue); WidgetCenter.shared.reloadAllTimelines() }
+        do { try SnapshotStore.writeConnectionLEDsEnabled(connectionLEDs); try SnapshotStore.writeGlassEnabled(liquidGlass); try SnapshotStore.writeGlassStyle(glassStyle.rawValue); WidgetCenter.shared.reloadAllTimelines() }
         catch { store.error = "Could not save widget appearance." }
     }
     private var initialRows: [[Provider]] {
@@ -129,6 +131,15 @@ struct MainView: View {
             store.moveProvider(source, to: target)
         } else {
             store.arrangeProvider(source, relativeTo: target, placement: placement, startingRows: initialRows)
+        }
+    }
+    private func connectionAction(for provider: Provider) -> (() -> Void)? {
+        let settings = store.settings(provider)
+        let reading = store.reading(provider)
+        guard (!settings.connected && !settings.manualSaved) || reading.state == .disconnected || reading.state == .reconnect else { return nil }
+        return {
+            store.selected = provider
+            store.showConnections = true
         }
     }
     private func refresh(_ provider: Provider) {
@@ -180,6 +191,7 @@ struct ProviderReordering: ViewModifier {
     @Environment(\.glassCardStyle) private var glassStyle
     let provider: Provider
     let snap: (Provider, Provider, CardPlacement) -> Void
+    var activate: (() -> Void)? = nil
     @State private var reordering: Bool?
     func body(content: Content) -> some View {
         content
@@ -208,7 +220,14 @@ struct ProviderReordering: ViewModifier {
                         if canSnap, let target { snap(provider, target.provider, target.placement) }
                     } else { interaction.endMove() }
                     reordering = nil
-                })
+                }
+                .exclusively(before: TapGesture().onEnded {
+                    guard !NSEvent.modifierFlags.contains(.shift) else { return }
+                    activate?()
+                }))
+            .accessibilityActions {
+                if let activate { Button("Set up \(provider.name)", action: activate) }
+            }
             .onHover { _ in interaction.updateModifiers() }
             .overlay {
                 if let target = interaction.snapTarget, target.provider == provider {

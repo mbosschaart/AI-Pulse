@@ -23,6 +23,19 @@ enum MetricKind: String, Codable, Sendable { case cost, remaining }
 enum ConnectionMode: String, Codable, CaseIterable { case automatic, manual }
 enum ReadingState: String, Codable, Sendable { case ready, disconnected, unavailable, reconnect, failed }
 
+enum ConnectionHealth {
+    case current, needsRefresh, reconnect, inactive, manual
+    var label: String {
+        switch self {
+        case .current: "Usage updated successfully"
+        case .needsRefresh: "Usage needs a successful refresh"
+        case .reconnect: "Sign in again"
+        case .inactive: "Account not connected"
+        case .manual: "Manually entered usage; session not checked"
+        }
+    }
+}
+
 struct Reading: Codable, Equatable, Identifiable, Sendable {
     var provider: Provider
     var kind: MetricKind = .remaining
@@ -39,6 +52,14 @@ struct Reading: Codable, Equatable, Identifiable, Sendable {
     var manual = false
     var id: Provider { provider }
 
+    func connectionHealth(at now: Date) -> ConnectionHealth {
+        if manual { return .manual }
+        if state == .disconnected { return .inactive }
+        if state == .reconnect { return .reconnect }
+        guard state == .ready, value != nil, let fetchedAt, fetchedAt <= now,
+              !isExpired(at: now), !isStale(at: now) else { return .needsRefresh }
+        return .current
+    }
     func isExpired(at now: Date) -> Bool { periodEnd.map { $0 <= now } ?? false }
     func isStale(at now: Date) -> Bool {
         !manual && (state != .ready || fetchedAt.map { now.timeIntervalSince($0) > (staleAfterSeconds ?? 900) } ?? true)

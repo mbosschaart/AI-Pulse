@@ -2,13 +2,13 @@
 
 A native macOS menu-bar app and desktop dashboard for AI subscription usage. Each provider shows billing-period usage cost or the percentage remaining until its reset date.
 
-<img src="screenshots/Screenshot_cards.png" alt="AI Pulse cards arranged in two rows on the desktop, showing usage for Cursor, Claude, OpenAI API, and ChatGPT" width="720">
+<img src="screenshots/Screenshot_cards.png" alt="AI Pulse 1.2 provider cards showing usage and connection status LEDs" width="320">
 
 ## Install
 
 Download the **AI Pulse DMG** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases/latest), open it, and drag **AI Pulse.app** to Applications. A ZIP download is also available. Requires macOS 14 or later; native Liquid Glass styles require macOS 26 or later.
 
-Version **1.1** is Developer ID signed and notarized by Apple.
+Version **1.2** is Developer ID signed and notarized by Apple.
 
 ## Use
 
@@ -29,9 +29,15 @@ Click the AI Pulse icon in the macOS menu bar for a quick overview of all visibl
 
 ### Compact view
 
-Keep all four providers in a small, readable list with transparent glass and a single refresh-all control.
+Keep all four providers in a small, readable list with optional status LEDs and a single refresh-all control.
 
-<img src="screenshots/Screenshot_compact.png" alt="AI Pulse Compact view with transparent glass, white text, and a single bottom-right refresh icon" width="560">
+<img src="screenshots/Screenshot_compact.png" alt="AI Pulse 1.2 Compact view with connection status LEDs and a single bottom-right refresh icon" width="560">
+
+### Connection health
+
+The global **Connection status LEDs** switch in Settings shows or hides status lights across all providers and views (on by default). A small status light shows connection health: green for a successful current reading, amber when a refresh is needed, red when sign-in is required, and gray for unconnected or manually entered accounts. Freshness follows your chosen refresh rate. The last-updated date appears only in the provider’s Settings.
+
+Green confirms the most recent successful usage check is still current; it does not continuously verify the provider session between checks. Failed checks never show green.
 
 ## Connect providers
 
@@ -47,9 +53,9 @@ Manual cost/percentage entry is also available. Manual values do not auto-renew.
 
 ### Settings
 
-Manage provider connections, choose which cards appear, set the refresh rate, and change the glass style. Move Settings beside the cards to preview your changes.
+Click an unconfigured card or Compact entry to open that provider’s connection settings. Manage provider connections, choose which cards appear, set the refresh rate, and change the glass style. Move Settings beside the cards to preview your changes.
 
-<img src="screenshots/Screenshot_settings.png" alt="AI Pulse 1.1 Settings showing the refresh rate options with Hourly selected, provider connections, and appearance controls" width="560">
+<img src="screenshots/Screenshot_settings.png" alt="AI Pulse 1.2 Settings showing the global connection status LED switch, last-updated time, refresh rate, and appearance controls" width="560">
 
 The refresh rate is saved across launches and applies to enabled providers. After sleep, an overdue check runs when the Mac wakes. Longer intervals keep readings valid until their next scheduled check; failed checks and expired allowances remain clearly marked. Desktop widget redraw timing is still controlled by macOS.
 

@@ -29,9 +29,14 @@ enum GlassCardStyle: String, CaseIterable, Identifiable {
         switch self { case .standard: "Standard"; case .clear: "Clear · white text"; case .smoked: "Smoked · white text" }
     }
 }
+private struct ConnectionLEDVisibilityKey: EnvironmentKey { static let defaultValue: Bool? = nil }
 private struct GlassCardStyleKey: EnvironmentKey { static let defaultValue = GlassCardStyle.standard }
 private struct LiquidGlassCardsKey: EnvironmentKey { static let defaultValue = false }
 extension EnvironmentValues {
+    var connectionLEDVisibility: Bool? {
+        get { self[ConnectionLEDVisibilityKey.self] }
+        set { self[ConnectionLEDVisibilityKey.self] = newValue }
+    }
     var glassCardStyle: GlassCardStyle {
         get { self[GlassCardStyleKey.self] }
         set { self[GlassCardStyleKey.self] = newValue }
@@ -80,6 +85,32 @@ struct CardSurface: ViewModifier {
     }
 }
 
+struct ConnectionHealthLED: View {
+    @AppStorage("connection-status-leds") private var enabled = true
+    @Environment(\.connectionLEDVisibility) private var visibilityOverride
+    let reading: Reading
+    var now: Date
+    private var health: ConnectionHealth { reading.connectionHealth(at: now) }
+    private var color: Color {
+        switch health {
+        case .current: .green
+        case .needsRefresh: .orange
+        case .reconnect: .red
+        case .inactive, .manual: .gray
+        }
+    }
+    var body: some View {
+        if visibilityOverride ?? enabled {
+        Circle().fill(color.gradient)
+            .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 0.5))
+            .frame(width: 7, height: 7)
+            .shadow(color: color.opacity(0.4), radius: 2)
+            .help(health.label)
+            .accessibilityLabel(health.label)
+        }
+    }
+}
+
 struct MetricCard: View {
     @Environment(\.liquidGlassCards) private var glassEnabled
     @Environment(\.glassCardStyle) private var glassStyle
@@ -97,9 +128,7 @@ struct MetricCard: View {
                 ProviderLogo(provider: reading.provider, size: compact ? 23 : 30)
                 Text(reading.provider.name).font(.system(size: compact ? 12 : 14, weight: .medium))
                 Spacer(minLength: 0)
-                if available && reading.isStale(at: now) {
-                    Image(systemName: "clock.badge.exclamationmark").foregroundStyle(.orange).help("Last known value. Refresh needed.")
-                }
+                ConnectionHealthLED(reading: reading, now: now)
             }
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 3) {
@@ -148,7 +177,10 @@ struct MetricRow: View {
         HStack(spacing: 10) {
             ProviderLogo(provider: reading.provider, size: 25)
             VStack(alignment: .leading, spacing: 2) {
-                Text(reading.provider.name).font(.system(size: 12, weight: .medium))
+                HStack(spacing: 6) {
+                    Text(reading.provider.name).font(.system(size: 12, weight: .medium))
+                    ConnectionHealthLED(reading: reading, now: now)
+                }
                 Text(reading.subtitle(at: now)).font(.system(size: 10)).foregroundStyle(whiteText ? Color.white : Color.secondary).lineLimit(1)
             }
             Spacer(minLength: 4)

@@ -54,7 +54,8 @@ import ServiceManagement
     let demo: Bool
 
     init() {
-        demo = ProcessInfo.processInfo.arguments.contains("--demo")
+        let emptyDemo = ProcessInfo.processInfo.arguments.contains("--demo-empty")
+        demo = emptyDemo || ProcessInfo.processInfo.arguments.contains("--demo")
         configurations = (UserDefaults.standard.data(forKey: "accounts-v1").flatMap { try? JSONDecoder().decode([ProviderSettings].self, from: $0) }) ?? Provider.allCases.map { ProviderSettings(provider: $0, mode: .automatic) }
         readings = UserDefaults.standard.data(forKey: "readings-v1").flatMap { try? JSONDecoder().decode([Reading].self, from: $0) } ?? Reading.empty
         for index in configurations.indices where configurations[index].provider == .chatgpt && !configurations[index].manualSaved && !configurations[index].connected {
@@ -62,7 +63,11 @@ import ServiceManagement
         }
         refreshInterval = UsageRefreshInterval.saved(defaults.integer(forKey: "usage-refresh-interval"))
         lastAutomaticRefresh = defaults.object(forKey: "last-automatic-usage-refresh") as? Date
-        if demo { readings = Self.demoReadings; return }
+        if demo {
+            readings = emptyDemo ? Reading.empty : Self.demoReadings
+            if emptyDemo { configurations = Provider.allCases.map { ProviderSettings(provider: $0) } }
+            return
+        }
         applyFreshnessWindow()
         let savedOrder = (defaults.stringArray(forKey: "provider-order") ?? []).compactMap(Provider.init(rawValue:))
         providerOrder = (savedOrder + Provider.allCases).reduce(into: []) { order, provider in

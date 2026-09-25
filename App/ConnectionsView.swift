@@ -4,6 +4,7 @@ struct ConnectionsView: View {
     @EnvironmentObject var store: PulseStore
     @AppStorage("liquid-glass") private var liquidGlass = false
     @AppStorage("glass-card-style") private var glassStyle: GlassCardStyle = .standard
+    @AppStorage("connection-status-leds") private var connectionLEDs = true
     @State private var config = ProviderSettings(provider: .openai)
     @State private var key = ""
     @State private var amount = ""
@@ -17,6 +18,12 @@ struct ConnectionsView: View {
                 ProviderLogo(provider: store.selected, size: 34)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(store.selected.name).font(.headline)
+                    if let updated = store.reading(store.selected).fetchedAt {
+                        Text("Last updated: \(updated.formatted(date: .abbreviated, time: .standard))")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text("Last updated: Never").font(.caption).foregroundStyle(.secondary)
+                    }
                     Text(store.reading(store.selected).detail).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -57,6 +64,9 @@ struct ConnectionsView: View {
                 Text("Automatic usage checks while AI Pulse is running. Hourly by default.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Toggle("Connection status LEDs", isOn: $connectionLEDs).toggleStyle(.switch)
+            Text("Show status lights for all providers in Cards, Compact, the menu bar overview, and desktop widgets.")
+                .font(.caption).foregroundStyle(.secondary)
             Toggle("Liquid Glass cards", isOn: $liquidGlass).toggleStyle(.switch)
             if liquidGlass {
                 Picker("Glass style", selection: $glassStyle) {
