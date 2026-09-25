@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import WidgetKit
 import ServiceManagement
+import Darwin
 
 @MainActor final class PulseStore: ObservableObject {
     @Published var readings: [Reading]
@@ -39,15 +40,38 @@ import ServiceManagement
     @Published var busy = Set<Provider>()
     @Published var selected: Provider = .openai
     @Published var settingsProvider: Provider? = nil
-    @Published var showConnections = false
+    @Published private(set) var showDesktopWidget = UserDefaults.standard.object(forKey: "show-desktop-widget") as? Bool ?? true
+    func setDesktopWidgetVisible(_ visible: Bool) {
+        guard !demo else { return }
+        showDesktopWidget = visible
+        defaults.set(visible, forKey: "show-desktop-widget")
+        StatusBarController.shared.updateDashboardVisibility()
+    }
     func openSettings(provider: Provider? = nil) {
         if let provider { selected = provider }
         settingsProvider = provider
-        showConnections = true
+        SettingsWindowController.shared.show(store: self)
     }
     @Published var error: String?
     @Published var organizations: [(id: String, name: String)] = []
-    @Published var launchAtLogin = SMAppService.mainApp.status == .enabled
+    static var isInstalledForLogin: Bool {
+        let parent = Bundle.main.bundleURL.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL
+        // NSHomeDirectory points inside the sandbox; resolve the actual account home.
+        guard let home = getpwuid(getuid())?.pointee.pw_dir else { return false }
+        return [URL(fileURLWithPath: "/Applications", isDirectory: true),
+                URL(fileURLWithPath: String(cString: home), isDirectory: true).appendingPathComponent("Applications", isDirectory: true)]
+            .contains { $0.resolvingSymlinksInPath().standardizedFileURL == parent }
+    }
+    @Published var launchAtLogin = isInstalledForLogin && SMAppService.mainApp.status == .enabled
+    @Published var loginStatusMessage: String?
+    func refreshLoginStatus() {
+        launchAtLogin = Self.isInstalledForLogin && SMAppService.mainApp.status == .enabled
+        if !Self.isInstalledForLogin {
+            loginStatusMessage = "Install AI Pulse in Applications and open that copy to enable launch at login."
+        } else if SMAppService.mainApp.status == .requiresApproval {
+            loginStatusMessage = "Allow AI Pulse in System Settings → General → Login Items."
+        } else { loginStatusMessage = nil }
+    }
     @Published private(set) var refreshInterval: UsageRefreshInterval = .hourly
     private var usageTimer: Timer?
     private var lastAutomaticRefresh: Date?
@@ -258,9 +282,16 @@ import ServiceManagement
         } catch { self.error = error.localizedDescription }
     }
     func setLogin(_ enabled: Bool) {
-        do { if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
-            launchAtLogin = SMAppService.mainApp.status == .enabled
-        } catch { self.error = error.localizedDescription }
+        guard !demo else { return }
+        guard Self.isInstalledForLogin else { refreshLoginStatus(); return }
+        do {
+            if enabled { try SMAppService.mainApp.register() }
+            else { try SMAppService.mainApp.unregister() }
+            refreshLoginStatus()
+        } catch {
+            refreshLoginStatus()
+            loginStatusMessage = "Could not change launch at login: " + error.localizedDescription
+        }
     }
     static var demoReadings: [Reading] {
         let now = Date()

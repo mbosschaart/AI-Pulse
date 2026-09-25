@@ -1,15 +1,19 @@
-# AI Pulse 1.3
+# AI Pulse 1.4
 
-OpenRouter joins AI Pulse, and Settings now clearly separates app-wide preferences from provider connections.
+Use AI Pulse entirely from the menu bar, with improved launch-at-login initialization.
 
-- **OpenRouter:** track account-wide Activity spend in USD for the current UTC month. Connect with an OpenRouter Management API key, stored in macOS Keychain. Organization keys report organization-wide spend; regular inference keys are not substituted for account-wide analytics.
-- **Settings dropdown:** choose General · All providers for refresh rate, status LEDs, appearance, launch-at-login, and software updates. Choose a provider for connection details, visibility, and last-updated time.
-- Card shortcuts still open the matching provider directly. Existing accounts, layout, and preferences are preserved.
-- OpenRouter supports Cards, Compact, the menu-bar overview, and desktop widgets. Large widgets use a readable list when five providers are enabled.
-- Check connection now explicitly checks a newly configured account immediately.
+- **Menu-bar-only mode:** turn off Show desktop widget in General Settings, or choose Hide Widget from the menu-bar context menu. The choice persists across restarts and automatic usage refresh continues.
+- AI Pulse now runs without a Dock icon. Settings and provider connections remain accessible while the dashboard is hidden.
+- Initialize the menu bar and dashboard directly during app launch, fixing the startup path that could leave the app running without its interface after login.
+- Launch-at-login registration now requires an installed copy in Applications. Settings refreshes its status and shows approval or registration errors.
+- Existing provider connections, usage, layout, and preferences are retained.
 
 ## Install
 
-Download **AI-Pulse-1.3.dmg** and drag AI Pulse to Applications, or use **AI-Pulse-macOS.zip**. Both contain the Developer ID signed, Apple-notarized app with a stapled ticket. SHA256SUMS.txt includes checksums.
+Download **AI-Pulse-1.4.dmg** and drag AI Pulse to Applications, or use **AI-Pulse-macOS.zip**. Both contain the Developer ID signed, Apple-notarized app with a stapled ticket. SHA256SUMS.txt includes checksums.
 
 Existing users: Settings → General · All providers → Check for updates. Requires macOS 14 or later; native Liquid Glass requires macOS 26 or later.
+
+## Validation
+
+Core tests and release signing/notarization are checked for this release. Full reboot validation of launch at login remains pending.

@@ -8,11 +8,12 @@ A native macOS menu-bar app and desktop dashboard for AI subscription usage. Eac
 
 Download the **AI Pulse DMG** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases/latest), open it, and drag **AI Pulse.app** to Applications. A ZIP download is also available. Requires macOS 14 or later; native Liquid Glass styles require macOS 26 or later.
 
-Version **1.3** is Developer ID signed and notarized by Apple.
+Version **1.4** is Developer ID signed and notarized by Apple.
 
 ## Use
 
-- Right-click the menu-bar icon for **Show Widget**, **Settings…**, or **Quit AI Pulse**. Left-click shows usage.
+- Right-click the menu-bar icon for **Show Widget** / **Hide Widget**, **Settings…**, or **Quit AI Pulse**. Left-click shows usage.
+- Turn off **Show desktop widget** in General Settings to use only the menu-bar overview. This choice is remembered across restarts; automatic refresh continues. AI Pulse runs without a Dock icon.
 - Settings is a separate, resizable window. Drag its title bar beside the cards to see appearance changes live; its position is remembered.
 - Right-click a card for **Cards** or **Compact**. Cards initially form a horizontal row, then remember your arrangement. Compact removes dividers and uses tightly spaced rows.
 - Drag normally to move the dashboard. Hold **Shift** to move a card. The full card follows the pointer; an edge highlight previews its placement. Drop near top/bottom to create a row, or left/right to join one. Out-of-range drops cancel without exporting clipping files.

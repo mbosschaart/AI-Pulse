@@ -159,6 +159,10 @@ struct GeneralSettingsView: View {
                 Text("Automatic usage checks while AI Pulse is running. Hourly by default.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Toggle("Show desktop widget", isOn: Binding(get: { store.showDesktopWidget }, set: { store.setDesktopWidgetVisible($0) }))
+                .toggleStyle(.switch)
+            Text("Hide the cards to use only the menu-bar overview. AI Pulse continues refreshing and stays available from its menu-bar icon, without a Dock icon.")
+                .font(.caption).foregroundStyle(.secondary)
             Toggle("Connection status LEDs", isOn: $connectionLEDs).toggleStyle(.switch)
             Text("Show status lights for all providers in Cards, Compact, the menu bar overview, and desktop widgets.")
                 .font(.caption).foregroundStyle(.secondary)
@@ -172,6 +176,10 @@ struct GeneralSettingsView: View {
             }
             Toggle("Open AI Pulse at login", isOn: Binding(get: { store.launchAtLogin }, set: { store.setLogin($0) }))
                 .font(.caption)
+                .disabled(!PulseStore.isInstalledForLogin)
+            if let message = store.loginStatusMessage {
+                Text(message).font(.caption).foregroundStyle(.secondary)
+            }
             Text("Add the desktop widget: right-click your desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing. Keep AI Pulse running for automatic usage checks.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }.disabled(store.demo)

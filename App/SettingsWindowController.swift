@@ -6,6 +6,7 @@ import AppKit
     private init() { super.init(window: nil) }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func show(store: PulseStore) {
+        store.refreshLoginStatus()
         if window == nil {
             let view = SettingsContent().environmentObject(store)
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 660, height: 740),

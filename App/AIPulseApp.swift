@@ -3,18 +3,43 @@ import AppKit
 import WidgetKit
 
 @main struct AIPulseApp: App {
-    @StateObject private var store = PulseStore()
+    @NSApplicationDelegateAdaptor(PulseAppDelegate.self) private var appDelegate
     var body: some Scene {
-        Window("AI Pulse", id: "main") {
-            MainView().environmentObject(store)
-                .onAppear { StatusBarController.shared.configure(store: store) }
-                .onOpenURL { url in
-                    if let raw = url.host, let provider = Provider(rawValue: raw) { store.openSettings(provider: provider) }
-                    if url.host == "settings" { store.openSettings() }
-                    NSApp.activate(ignoringOtherApps: true)
-                }
-        }.defaultSize(width: 640, height: 580).windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
+        Settings { EmptyView() }
+    }
+}
 
+@MainActor final class PulseAppDelegate: NSObject, NSApplicationDelegate {
+    private var store: PulseStore?
+    private var dashboardWindow: NSWindow?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        let store = PulseStore()
+        self.store = store
+        StatusBarController.shared.configure(store: store)
+        let content = MainView().environmentObject(store)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 580),
+                              styleMask: [.borderless], backing: .buffered, defer: false)
+        window.title = "AI Pulse"
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: content)
+        dashboardWindow = window
+        StatusBarController.shared.attachDashboard(window)
+        if store.showDesktopWidget { window.orderFront(nil) }
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let store else { return }
+        for url in urls {
+            if let raw = url.host, let provider = Provider(rawValue: raw) { store.openSettings(provider: provider) }
+            if url.host == "settings" { store.openSettings() }
+        }
+        application.activate(ignoringOtherApps: true)
+    }
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        StatusBarController.shared.reopen()
+        return false
     }
 }
 
@@ -103,12 +128,6 @@ struct MainView: View {
         .onChange(of: glassStyle) { _, _ in syncAppearance() }
         .contentShape(Rectangle())
         .contextMenu { dashboardMenu() }
-        .onChange(of: store.showConnections) { _, visible in
-            if visible {
-                SettingsWindowController.shared.show(store: store)
-                store.showConnections = false
-            }
-        }
         .alert("AI Pulse", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
             Button("OK") { store.error = nil }
         } message: { Text(store.error ?? "") }
@@ -161,12 +180,12 @@ struct MainView: View {
 
 struct MenuView: View {
     @EnvironmentObject var store: PulseStore
-    var openDashboard: () -> Void
+    var dismissPopover: () -> Void
     var body: some View {
         VStack(spacing: 15) {
             HStack { Text("AI Pulse").font(.headline); Spacer(); if store.demo { Text("DEMO").font(.caption).foregroundStyle(.secondary) } }
             ForEach(store.visibleReadings) { reading in
-                Button { store.openSettings(provider: reading.provider); openDashboard() } label: { MetricRow(reading: reading) }.buttonStyle(.plain)
+                Button { dismissPopover(); store.openSettings(provider: reading.provider) } label: { MetricRow(reading: reading) }.buttonStyle(.plain)
             }
             Divider()
             HStack {
@@ -262,6 +281,7 @@ struct BorderlessDashboardWindow: NSViewRepresentable {
             window.acceptsMouseMovedEvents = true
             window.isMovableByWindowBackground = false
             interaction?.attach(window)
+            StatusBarController.shared.attachDashboard(window)
         }
     }
     func makeNSView(context: Context) -> WindowAnchor {
@@ -345,6 +365,24 @@ struct BorderlessDashboardWindow: NSViewRepresentable {
     private var item: NSStatusItem?
     private var store: PulseStore?
     private let popover = NSPopover()
+    private weak var dashboard: NSWindow?
+    func attachDashboard(_ window: NSWindow) {
+        guard dashboard !== window else { return }
+        dashboard = window
+        // SwiftUI may order its initial window after the anchor attaches.
+        NotificationCenter.default.addObserver(self, selector: #selector(enforceHiddenDashboard), name: NSWindow.didBecomeKeyNotification, object: window)
+        NotificationCenter.default.addObserver(self, selector: #selector(enforceHiddenDashboard), name: NSApplication.didFinishLaunchingNotification, object: nil)
+        DispatchQueue.main.async { self.enforceHiddenDashboard() }
+    }
+    @objc private func enforceHiddenDashboard() {
+        let visible = store?.showDesktopWidget ?? (UserDefaults.standard.object(forKey: "show-desktop-widget") as? Bool ?? true)
+        if !visible { dashboard?.orderOut(nil) }
+    }
+    func updateDashboardVisibility() {
+        guard let store else { return }
+        if store.showDesktopWidget { dashboard?.orderFront(nil) }
+        else { dashboard?.orderOut(nil) }
+    }
     func configure(store: PulseStore) {
         guard item == nil else { return }
         self.store = store
@@ -357,14 +395,14 @@ struct BorderlessDashboardWindow: NSViewRepresentable {
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView:
-            MenuView(openDashboard: { [weak self] in self?.showDashboard() }).environmentObject(store))
+            MenuView(dismissPopover: { [weak self] in self?.popover.performClose(nil) }).environmentObject(store))
     }
     @objc private func clicked() {
         guard let button = item?.button else { return }
         if NSApp.currentEvent?.type == .rightMouseUp || NSApp.currentEvent?.modifierFlags.contains(.control) == true {
             popover.performClose(nil)
             let menu = NSMenu()
-            let show = menu.addItem(withTitle: "Show Widget", action: #selector(showCards), keyEquivalent: "")
+            let show = menu.addItem(withTitle: store?.showDesktopWidget == true ? "Hide Widget" : "Show Widget", action: #selector(showCards), keyEquivalent: "")
             show.target = self
             let settings = menu.addItem(withTitle: "Settings…", action: #selector(settings), keyEquivalent: "")
             settings.target = self
@@ -375,19 +413,17 @@ struct BorderlessDashboardWindow: NSViewRepresentable {
         } else if popover.isShown { popover.performClose(nil) }
         else { popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY) }
     }
-    private func showDashboard() {
-        popover.performClose(nil)
-        let dashboard = NSApp.windows.first { $0.identifier?.rawValue == "main" }
-            ?? NSApp.windows.first { $0.title == "AI Pulse" && !$0.isKind(of: NSPanel.self) }
-        dashboard?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+    func reopen() {
+        guard let store else { return }
+        if store.showDesktopWidget { dashboard?.makeKeyAndOrderFront(nil) }
+        else { store.openSettings() }
     }
     @objc private func showCards() {
-        store?.showConnections = false
-        showDashboard()
+        guard let store else { return }
+        store.setDesktopWidgetVisible(!store.showDesktopWidget)
     }
     @objc private func settings() {
-        showDashboard()
+        popover.performClose(nil)
         store?.openSettings()
     }
     @objc private func quit() { NSApp.terminate(nil) }

@@ -5,13 +5,13 @@
     <link>https://github.com/mbosschaart/AI-Pulse</link>
     <description>Signed AI Pulse releases</description>
     <item>
-      <title>AI Pulse 1.3</title>
-      <pubDate>Fri, 25 Sep 2026 13:26:54 +0000</pubDate>
-      <sparkle:version>6</sparkle:version>
-      <sparkle:shortVersionString>1.3</sparkle:shortVersionString>
+      <title>AI Pulse 1.4</title>
+      <pubDate>Fri, 25 Sep 2026 14:10:18 +0000</pubDate>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>1.4</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <description>AI Pulse 1.3. See the GitHub release notes for changes.</description>
-      <enclosure url="https://github.com/mbosschaart/AI-Pulse/releases/download/v1.3/AI-Pulse-macOS.zip" length="3091691" type="application/octet-stream" sparkle:edSignature="gr4BeBLNUx6kIfS9+hbvGW8VNyCXUhNPx0azrIp640svzeeFNNeXRn3a7wO8gDaqtId8npSU2dzG9fqxShWcCQ==" />
+      <description>AI Pulse 1.4. See the GitHub release notes for changes.</description>
+      <enclosure url="https://github.com/mbosschaart/AI-Pulse/releases/download/v1.4/AI-Pulse-macOS.zip" length="3099044" type="application/octet-stream" sparkle:edSignature="mUDFK1UH/zaVAoXylYUV/IHQOMLP6u4u/I/CjBUzUSD6/jrErM0PeLOXBft7FQ5ThaGiBf80sQ/Xc1S1/+HVAQ==" />
     </item>
   </channel>
 </rss>
