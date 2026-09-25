@@ -2,18 +2,12 @@ import SwiftUI
 
 struct ConnectionsView: View {
     @EnvironmentObject var store: PulseStore
-    @AppStorage("liquid-glass") private var liquidGlass = false
-    @AppStorage("glass-card-style") private var glassStyle: GlassCardStyle = .standard
-    @AppStorage("connection-status-leds") private var connectionLEDs = true
     @State private var config = ProviderSettings(provider: .openai)
     @State private var key = ""
     @State private var amount = ""
     @State private var feedback: String?
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Picker("Provider", selection: $store.selected) {
-                ForEach(Provider.allCases) { p in Text(p.name).tag(p) }
-            }.pickerStyle(.segmented)
             HStack {
                 ProviderLogo(provider: store.selected, size: 34)
                 VStack(alignment: .leading, spacing: 3) {
@@ -55,30 +49,7 @@ struct ConnectionsView: View {
                     Task { await store.disconnect(provider); load() }
                 }.disabled(store.busy.contains(store.selected))
             }
-            Divider()
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Refresh rate").font(.headline)
-                Picker("Refresh rate", selection: Binding(get: { store.refreshInterval }, set: { store.setRefreshInterval($0) })) {
-                    ForEach(UsageRefreshInterval.allCases) { interval in Text(interval.title).tag(interval) }
-                }.pickerStyle(.segmented).labelsHidden()
-                Text("Automatic usage checks while AI Pulse is running. Hourly by default.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Toggle("Connection status LEDs", isOn: $connectionLEDs).toggleStyle(.switch)
-            Text("Show status lights for all providers in Cards, Compact, the menu bar overview, and desktop widgets.")
-                .font(.caption).foregroundStyle(.secondary)
-            Toggle("Liquid Glass cards", isOn: $liquidGlass).toggleStyle(.switch)
-            if liquidGlass {
-                Picker("Glass style", selection: $glassStyle) {
-                    ForEach(GlassCardStyle.allCases) { style in Text(style.title).tag(style) }
-                }.pickerStyle(.segmented)
-                Text("Clear balances transparency with a visible glass edge. Smoked adds a darker tint. Both use white text.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Toggle("Open AI Pulse at login", isOn: Binding(get: { store.launchAtLogin }, set: { store.setLogin($0) }))
-                .font(.caption)
-            Text("Add the desktop widget: right-click your desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing. Keep AI Pulse running for automatic usage checks.")
-                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+
         }
         .disabled(store.demo)
         .onAppear { load() }
@@ -96,6 +67,13 @@ struct ConnectionsView: View {
                 Picker("Billing day", selection: $config.billingDay) { ForEach(1...31, id: \.self) { Text(String($0)).tag($0) } }.frame(width: 85)
                 Text("UTC · defaults to calendar month").font(.caption).foregroundStyle(.secondary)
             }
+        } else if store.selected == .openrouter {
+            Text("Use a Management API key to read account-wide Activity spend for the current UTC month. For organization accounts this includes the whole organization. The key stays in this Mac’s Keychain.")
+                .font(.caption).foregroundStyle(.secondary)
+            Link("Open OpenRouter Management keys", destination: URL(string: "https://openrouter.ai/settings/management-keys")!)
+            SecureField("Management API key · leave blank to keep saved key", text: $key).textFieldStyle(.roundedBorder)
+            Text("Shows Activity total spend, including BYOK where reported. Credit purchases and remaining prepaid balance are not monthly spend. Use a personal-account key to track only your own account.")
+                .font(.caption).foregroundStyle(.secondary)
         } else {
             Text("Sign in directly on the provider’s website. Close the sign-in window, then check the connection. Your session stays in this app’s private WebKit storage on this Mac.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -151,14 +129,51 @@ struct ConnectionsView: View {
     }
     func saveAndCheck() {
         do {
-            if store.selected == .openai && !key.isEmpty {
-                try Credentials.save(key.trimmingCharacters(in: .whitespacesAndNewlines), account: "openai-key")
+            if store.selected.usesAPIKey && !key.isEmpty {
+                try Credentials.save(key.trimmingCharacters(in: .whitespacesAndNewlines), account: store.selected.credentialAccount)
                 key = ""
-                store.invalidate(.openai)
+                store.invalidate(store.selected)
             }
             store.configure(config)
             let provider = store.selected
-            Task { await store.refresh(provider); if store.selected == provider { feedback = store.reading(provider).detail } }
+            Task { await store.refresh(provider, force: true); if store.selected == provider { feedback = store.reading(provider).detail } }
         } catch { feedback = error.localizedDescription }
+    }
+}
+
+struct GeneralSettingsView: View {
+    @EnvironmentObject var store: PulseStore
+    @AppStorage("liquid-glass") private var liquidGlass = false
+    @AppStorage("glass-card-style") private var glassStyle: GlassCardStyle = .standard
+    @AppStorage("connection-status-leds") private var connectionLEDs = true
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("General").font(.title2.weight(.semibold))
+            Text("Applies to all providers and views.").font(.subheadline).foregroundStyle(.secondary)
+            Divider()
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Refresh rate").font(.headline)
+                Picker("Refresh rate", selection: Binding(get: { store.refreshInterval }, set: { store.setRefreshInterval($0) })) {
+                    ForEach(UsageRefreshInterval.allCases) { interval in Text(interval.title).tag(interval) }
+                }.pickerStyle(.segmented).labelsHidden()
+                Text("Automatic usage checks while AI Pulse is running. Hourly by default.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Toggle("Connection status LEDs", isOn: $connectionLEDs).toggleStyle(.switch)
+            Text("Show status lights for all providers in Cards, Compact, the menu bar overview, and desktop widgets.")
+                .font(.caption).foregroundStyle(.secondary)
+            Toggle("Liquid Glass cards", isOn: $liquidGlass).toggleStyle(.switch)
+            if liquidGlass {
+                Picker("Glass style", selection: $glassStyle) {
+                    ForEach(GlassCardStyle.allCases) { style in Text(style.title).tag(style) }
+                }.pickerStyle(.segmented)
+                Text("Clear balances transparency with a visible glass edge. Smoked adds a darker tint. Both use white text.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Toggle("Open AI Pulse at login", isOn: Binding(get: { store.launchAtLogin }, set: { store.setLogin($0) }))
+                .font(.caption)
+            Text("Add the desktop widget: right-click your desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing. Keep AI Pulse running for automatic usage checks.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }.disabled(store.demo)
     }
 }

@@ -109,7 +109,7 @@ final class UsageTests: XCTestCase {
                        [[.claude], [.openai], [.chatgpt, .cursor]])
         XCTAssertEqual(CardArrangement.moving(.claude, relativeTo: .claude, placement: .below, in: rows), rows)
         let restored = CardArrangement.normalized([[.cursor, .cursor], [], [.claude]], including: Provider.allCases)
-        XCTAssertEqual(restored, [[.cursor], [.claude], [.openai, .chatgpt]])
+        XCTAssertEqual(restored, [[.cursor], [.claude], [.openai, .chatgpt, .openrouter]])
     }
     func testChatGPTSelectsTightestWindowWithMatchingReset() throws {
         let end = now.addingTimeInterval(3600).timeIntervalSince1970
@@ -331,5 +331,75 @@ final class CostClientTests: XCTestCase {
             XCTAssertFalse(error.localizedDescription.contains("secret-key-fragment"))
         }
         session.invalidateAndCancel()
+    }
+}
+
+final class OpenRouterClientTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1789992000)
+    func testAnalyticsTotalAndUTCPeriod() throws {
+        let payload = Data(#"{"data":{"data":[{"total_usage":12.345}],"metadata":{"row_count":1,"truncated":false}}}"#.utf8)
+        let reading = try OpenRouterCostClient.reading(from: payload, now: now)
+        XCTAssertEqual(reading.provider, .openrouter)
+        XCTAssertEqual(reading.kind, .cost)
+        XCTAssertEqual(reading.value, 12.345)
+        XCTAssertEqual(reading.currency, "USD")
+        XCTAssertEqual(reading.periodStart, BillingPeriod.current(day: 1, now: now).start)
+        XCTAssertEqual(reading.periodEnd, BillingPeriod.current(day: 1, now: now).end)
+        XCTAssertEqual(reading.connectionHealth(at: now), .current)
+    }
+    func testEmptyAnalyticsIsZeroButIncompleteAndMalformedTotalsAreRejected() throws {
+        let empty = Data(#"{"data":{"data":[],"metadata":{"row_count":0,"truncated":false}}}"#.utf8)
+        XCTAssertEqual(try OpenRouterCostClient.reading(from: empty, now: now).value, 0)
+        for payload in [
+            #"{"data":{"data":[{"total_usage":12}],"metadata":{"row_count":1,"truncated":true}}}"#,
+            #"{"data":{"data":[],"metadata":{"row_count":1,"truncated":false}}}"#,
+            #"{"data":{"data":[{"total_usage":true}],"metadata":{"row_count":1,"truncated":false}}}"#,
+            #"{"data":{"data":[{"total_usage":-1}],"metadata":{"row_count":1,"truncated":false}}}"#,
+            #"{"data":{"data":[{}],"metadata":{"row_count":1,"truncated":false}}}"#,
+            #"{"data":{"data":[{"total_usage":1},{"total_usage":2}],"metadata":{"row_count":2,"truncated":false}}}"#,
+            #"{"data":{"data":[]}}"#
+        ] { XCTAssertThrowsError(try OpenRouterCostClient.reading(from: Data(payload.utf8), now: now)) }
+    }
+    func testRequestIsAccountWideMonthlyAndDoesNotLeakErrorBody() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let period = BillingPeriod.current(day: 1, now: now)
+        StubURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://openrouter.ai/api/v1/analytics/query")
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-management-key")
+            var body = request.httpBody ?? Data()
+            if let stream = request.httpBodyStream {
+                stream.open(); defer { stream.close() }
+                var buffer = [UInt8](repeating: 0, count: 4096)
+                while stream.hasBytesAvailable {
+                    let count = stream.read(&buffer, maxLength: buffer.count)
+                    if count <= 0 { break }
+                    body.append(contentsOf: buffer.prefix(count))
+                }
+            }
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            XCTAssertEqual(json["metrics"] as? [String], ["total_usage"])
+            XCTAssertNil(json["filters"])
+            XCTAssertNil(json["dimensions"])
+            let range = try XCTUnwrap(json["time_range"] as? [String: String])
+            XCTAssertEqual(UsageParser.date(range["start"]), period.start)
+            XCTAssertEqual(UsageParser.date(range["end"]), self.now)
+            return (200, Data(#"{"data":{"data":[{"total_usage":9.5}],"metadata":{"row_count":1,"truncated":false}}}"#.utf8))
+        }
+        let result = try await OpenRouterCostClient(session: session).fetch(key: " test-management-key ", now: now)
+        XCTAssertEqual(result.value, 9.5)
+        for status in [401, 403, 429, 500] {
+            StubURLProtocol.handler = { _ in (status, Data("private-response-marker".utf8)) }
+            do {
+                _ = try await OpenRouterCostClient(session: session).fetch(key: "test-management-key", now: now)
+                XCTFail("Must reject HTTP \(status)")
+            } catch {
+                XCTAssertFalse(error.localizedDescription.contains("private-response-marker"))
+                XCTAssertFalse(error.localizedDescription.contains("test-management-key"))
+            }
+        }
     }
 }

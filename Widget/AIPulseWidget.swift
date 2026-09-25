@@ -3,13 +3,13 @@ import SwiftUI
 import AppIntents
 
 enum WidgetProviderChoice: String, AppEnum {
-    case openai, chatgpt, claude, cursor
+    case openai, chatgpt, claude, cursor, openrouter
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Provider"
-    static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [.openai: "OpenAI API", .chatgpt: "ChatGPT", .claude: "Claude", .cursor: "Cursor"]
+    static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [.openai: "OpenAI API", .chatgpt: "ChatGPT", .claude: "Claude", .cursor: "Cursor", .openrouter: "OpenRouter"]
 }
 struct WidgetOptions: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "AI Pulse"
-    static var description = IntentDescription("Choose the provider shown by the small widget. Larger widgets show all four.")
+    static var description = IntentDescription("Choose the provider shown by the small widget. Larger widgets show enabled providers.")
     @Parameter(title: "Small widget provider", default: .openai) var provider: WidgetProviderChoice
 }
 struct PulseEntry: TimelineEntry {
@@ -54,12 +54,22 @@ struct PulseWidgetView: View {
                     }
                 }
             default:
+                if entry.readings.count > 4 {
+                    VStack(spacing: 12) {
+                        ForEach(entry.readings) { reading in
+                            Link(destination: URL(string: "aipulse://\(reading.provider.rawValue)")!) {
+                                MetricRow(reading: reading, now: entry.date, compact: true)
+                            }
+                        }
+                    }
+                } else {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                     ForEach(entry.readings) { reading in
                         Link(destination: URL(string: "aipulse://\(reading.provider.rawValue)")!) {
                             MetricCard(reading: reading, compact: true, now: entry.date).frame(maxHeight: .infinity)
                         }
                     }
+                }
                 }
             }
             }

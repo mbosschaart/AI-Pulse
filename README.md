@@ -8,7 +8,7 @@ A native macOS menu-bar app and desktop dashboard for AI subscription usage. Eac
 
 Download the **AI Pulse DMG** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases/latest), open it, and drag **AI Pulse.app** to Applications. A ZIP download is also available. Requires macOS 14 or later; native Liquid Glass styles require macOS 26 or later.
 
-Version **1.2** is Developer ID signed and notarized by Apple.
+Version **1.3** is Developer ID signed and notarized by Apple.
 
 ## Use
 
@@ -29,7 +29,7 @@ Click the AI Pulse icon in the macOS menu bar for a quick overview of all visibl
 
 ### Compact view
 
-Keep all four providers in a small, readable list with optional status LEDs and a single refresh-all control.
+Keep your providers in a small, readable list with optional status LEDs and a single refresh-all control.
 
 <img src="screenshots/Screenshot_compact.png" alt="AI Pulse 1.2 Compact view with connection status LEDs and a single bottom-right refresh icon" width="560">
 
@@ -55,13 +55,15 @@ Green confirms the most recent successful usage check is still current; it does 
 
 **Cursor:** sign in and check the connection. Shows personal remaining allowance when available, otherwise individual billing-period usage cost. Team spending is never substituted, and usage credits are not represented as invoice charges.
 
+**OpenRouter:** add a [Management API key](https://openrouter.ai/settings/management-keys) in Settings. Shows account-wide Activity total spend in USD for the current UTC month using the [Analytics API](https://openrouter.ai/docs/api/api-reference/analytics/query-analytics-data). Organization keys include organization-wide spend; use a personal-account key for personal totals. Regular inference keys cannot read account-wide analytics. Credit purchases and prepaid balances are not monthly spend. The key stays in macOS Keychain.
+
 Manual cost/percentage entry is also available. Manual values do not auto-renew. Expired or unavailable data is marked rather than replaced by a guessed value.
 
 ### Settings
 
-Click an unconfigured card or Compact entry to open that provider’s connection settings. Manage provider connections, choose which cards appear, set the refresh rate, and change the glass style. Move Settings beside the cards to preview your changes.
+Use the Settings dropdown to choose **General · All providers** or a specific provider. General contains refresh rate, status LEDs, appearance, launch-at-login, and software updates. Provider pages contain connection details, visibility, and last-updated time. Clicking an unconfigured card or Compact entry opens that provider directly. Move Settings beside the cards to preview your changes.
 
-<img src="screenshots/Screenshot_settings.png" alt="AI Pulse 1.2 Settings showing the global connection status LED switch, last-updated time, refresh rate, and appearance controls" width="560">
+<img src="screenshots/Screenshot_settings.png" alt="AI Pulse 1.3 General settings, separated from provider connection pages by a dropdown" width="560">
 
 The refresh rate is saved across launches and applies to enabled providers. After sleep, an overdue check runs when the Mac wakes. Longer intervals keep readings valid until their next scheduled check; failed checks and expired allowances remain clearly marked. Desktop widget redraw timing is still controlled by macOS.
 

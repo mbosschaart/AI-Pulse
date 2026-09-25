@@ -9,8 +9,8 @@ import WidgetKit
             MainView().environmentObject(store)
                 .onAppear { StatusBarController.shared.configure(store: store) }
                 .onOpenURL { url in
-                    if let raw = url.host, let provider = Provider(rawValue: raw) { store.selected = provider; store.showConnections = true }
-                    if url.host == "settings" { store.showConnections = true }
+                    if let raw = url.host, let provider = Provider(rawValue: raw) { store.openSettings(provider: provider) }
+                    if url.host == "settings" { store.openSettings() }
                     NSApp.activate(ignoringOtherApps: true)
                 }
         }.defaultSize(width: 640, height: 580).windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
@@ -38,7 +38,7 @@ struct MainView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "eye.slash").font(.title2).foregroundStyle(.secondary)
                         Text("No providers shown").font(.headline)
-                        Button("Settings…") { store.showConnections = true }.buttonStyle(.plain).font(.caption)
+                        Button("Settings…") { store.openSettings() }.buttonStyle(.plain).font(.caption)
                     }.frame(maxWidth: .infinity).padding(.vertical, 30)
                         .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
                 } else { switch layout {
@@ -138,8 +138,7 @@ struct MainView: View {
         let reading = store.reading(provider)
         guard (!settings.connected && !settings.manualSaved) || reading.state == .disconnected || reading.state == .reconnect else { return nil }
         return {
-            store.selected = provider
-            store.showConnections = true
+            store.openSettings(provider: provider)
         }
     }
     private func refresh(_ provider: Provider) {
@@ -153,8 +152,7 @@ struct MainView: View {
         }
         Divider()
         Button("Settings…") {
-            if let provider { store.selected = provider }
-            store.showConnections = true
+            store.openSettings(provider: provider)
         }
         Button("Refresh") { Task { await store.refreshAll(force: true) } }
             .disabled(!store.busy.isEmpty || store.demo)
@@ -168,7 +166,7 @@ struct MenuView: View {
         VStack(spacing: 15) {
             HStack { Text("AI Pulse").font(.headline); Spacer(); if store.demo { Text("DEMO").font(.caption).foregroundStyle(.secondary) } }
             ForEach(store.visibleReadings) { reading in
-                Button { store.selected = reading.provider; store.showConnections = true; openDashboard() } label: { MetricRow(reading: reading) }.buttonStyle(.plain)
+                Button { store.openSettings(provider: reading.provider); openDashboard() } label: { MetricRow(reading: reading) }.buttonStyle(.plain)
             }
             Divider()
             HStack {
@@ -390,7 +388,7 @@ struct BorderlessDashboardWindow: NSViewRepresentable {
     }
     @objc private func settings() {
         showDashboard()
-        store?.showConnections = true
+        store?.openSettings()
     }
     @objc private func quit() { NSApp.terminate(nil) }
 }

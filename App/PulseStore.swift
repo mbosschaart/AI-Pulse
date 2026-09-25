@@ -38,7 +38,13 @@ import ServiceManagement
     }
     @Published var busy = Set<Provider>()
     @Published var selected: Provider = .openai
+    @Published var settingsProvider: Provider? = nil
     @Published var showConnections = false
+    func openSettings(provider: Provider? = nil) {
+        if let provider { selected = provider }
+        settingsProvider = provider
+        showConnections = true
+    }
     @Published var error: String?
     @Published var organizations: [(id: String, name: String)] = []
     @Published var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -58,6 +64,9 @@ import ServiceManagement
         demo = emptyDemo || ProcessInfo.processInfo.arguments.contains("--demo")
         configurations = (UserDefaults.standard.data(forKey: "accounts-v1").flatMap { try? JSONDecoder().decode([ProviderSettings].self, from: $0) }) ?? Provider.allCases.map { ProviderSettings(provider: $0, mode: .automatic) }
         readings = UserDefaults.standard.data(forKey: "readings-v1").flatMap { try? JSONDecoder().decode([Reading].self, from: $0) } ?? Reading.empty
+        for provider in Provider.allCases where !readings.contains(where: { $0.provider == provider }) {
+            readings.append(Reading(provider: provider, kind: provider.defaultMetricKind))
+        }
         for index in configurations.indices where configurations[index].provider == .chatgpt && !configurations[index].manualSaved && !configurations[index].connected {
             configurations[index].mode = .automatic
         }
@@ -126,13 +135,13 @@ import ServiceManagement
         if let data = try? JSONEncoder().encode(configurations) { defaults.set(data, forKey: "accounts-v1") }
         retryAfter[value.provider] = nil
         if previous.mode != value.mode || previous.organizationID != value.organizationID || previous.billingDay != value.billingDay {
-            publish(Reading(provider: value.provider, kind: value.provider == .openai ? .cost : .remaining,
+            publish(Reading(provider: value.provider, kind: value.provider.defaultMetricKind,
                             state: .unavailable, detail: "Account settings changed. Check the connection to load a new reading."))
         }
     }
     func invalidate(_ provider: Provider) {
         generation[provider, default: 0] += 1
-        publish(Reading(provider: provider, kind: provider == .openai ? .cost : .remaining,
+        publish(Reading(provider: provider, kind: provider.defaultMetricKind,
                         state: .unavailable, detail: "Check the connection after signing in or changing credentials."))
     }
     private func publish(_ reading: Reading) {
@@ -183,6 +192,11 @@ import ServiceManagement
                 case .openai:
                     guard let key = try Credentials.read("openai-key"), !key.isEmpty else { throw UsageError.unavailable("Add an OpenAI organization Admin API key in Connections.") }
                     result = try await OpenAICostClient(session: SameHostRedirects.session).fetch(key: key, organization: config.organizationID, billingDay: config.billingDay)
+                case .openrouter:
+                    guard let key = try Credentials.read(provider.credentialAccount), !key.isEmpty else {
+                        throw UsageError.unavailable("Add an OpenRouter Management API key in Settings.")
+                    }
+                    result = try await OpenRouterCostClient(session: SameHostRedirects.session).fetch(key: key)
                 case .claude:
                     var id = config.organizationID
                     if id.isEmpty {
@@ -220,7 +234,7 @@ import ServiceManagement
             if case UsageError.openAIAuthentication = error { last.state = .reconnect }
             if case UsageError.unavailable = error { last.state = .unavailable }
             if error is UsageError { last.detail = error.localizedDescription }
-            else if provider == .openai { last.detail = "OpenAI could not complete the cost request (error \((error as NSError).code)). Try again." }
+            else if provider.usesAPIKey { last.detail = "\(provider.name) could not complete the cost request (error \((error as NSError).code)). Try again." }
             else { last.detail = "Could not read the provider dashboard. Open its sign-in window and try again." }
             failures[provider, default: 0] += 1
             var delay = min(3600.0, 300 * pow(2, Double(failures[provider, default: 1] - 1)))
@@ -237,10 +251,10 @@ import ServiceManagement
     func disconnect(_ provider: Provider) async {
         generation[provider, default: 0] += 1
         do {
-            if provider == .openai { try Credentials.remove("openai-key") }
-            if provider != .openai { await browser(provider).clear() }
+            if provider.usesAPIKey { try Credentials.remove(provider.credentialAccount) }
+            if !provider.usesAPIKey { await browser(provider).clear() }
             configure(ProviderSettings(provider: provider, mode: .automatic))
-            publish(Reading(provider: provider, kind: provider == .openai ? .cost : .remaining))
+            publish(Reading(provider: provider, kind: provider.defaultMetricKind))
         } catch { self.error = error.localizedDescription }
     }
     func setLogin(_ enabled: Bool) {

@@ -2,11 +2,14 @@ import Foundation
 import CoreGraphics
 
 enum Provider: String, Codable, CaseIterable, Identifiable, Sendable {
-    case openai, chatgpt, claude, cursor
+    case openai, chatgpt, claude, cursor, openrouter
     var id: String { rawValue }
     var name: String {
-        switch self { case .openai: "OpenAI API"; case .chatgpt: "ChatGPT"; case .claude: "Claude"; case .cursor: "Cursor" }
+        switch self { case .openai: "OpenAI API"; case .chatgpt: "ChatGPT"; case .claude: "Claude"; case .cursor: "Cursor"; case .openrouter: "OpenRouter" }
     }
+    var usesAPIKey: Bool { self == .openai || self == .openrouter }
+    var credentialAccount: String { rawValue + "-key" }
+    var defaultMetricKind: MetricKind { usesAPIKey ? .cost : .remaining }
     var logo: String { self == .chatgpt ? "openai" : rawValue }
     var website: URL {
         let address = switch self {
@@ -14,6 +17,7 @@ enum Provider: String, Codable, CaseIterable, Identifiable, Sendable {
         case .chatgpt: "https://chatgpt.com/codex/settings/usage"
         case .claude: "https://claude.ai/new#settings/usage"
         case .cursor: "https://cursor.com/dashboard/usage"
+        case .openrouter: "https://openrouter.ai/activity"
         }
         return URL(string: address)!
     }
@@ -96,9 +100,9 @@ struct Reading: Codable, Equatable, Identifiable, Sendable {
     }
     var metricLabel: String {
         if let spendAllowanceLabel { return "left " + spendAllowanceLabel }
-        return kind == .cost ? "this billing period" : (window.isEmpty ? "remaining" : "left · \(window)")
+        return kind == .cost ? (provider == .openrouter ? "this month · USD" : "this billing period") : (window.isEmpty ? "remaining" : "left · \(window)")
     }
-    static var empty: [Reading] { Provider.allCases.map { Reading(provider: $0, kind: $0 == .openai ? .cost : .remaining) } }
+    static var empty: [Reading] { Provider.allCases.map { Reading(provider: $0, kind: $0.defaultMetricKind) } }
 }
 
 struct ProviderSettings: Codable, Equatable {

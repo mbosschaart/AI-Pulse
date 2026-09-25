@@ -13,7 +13,7 @@ def encode(v):
  if isinstance(v,dict): return '{\n'+''.join(f'{encode(k)} = {encode(x)};\n' for k,x in v.items())+'}'
  if isinstance(v,list): return '('+','.join(encode(x) for x in v)+')'
  return json.dumps(str(v))
-for name in ['openai','claude','cursor']:
+for name in ['openai','claude','cursor','openrouter']:
  d=root/'Resources/Assets.xcassets'/f'{name}.imageset';d.mkdir(parents=True,exist_ok=True)
  (d/f'{name}.svg').write_bytes((root/'Resources'/f'{name}.svg').read_bytes())
  (d/'Contents.json').write_text(json.dumps({'images':[{'filename':f'{name}.svg','idiom':'universal'}],'info':{'author':'xcode','version':1},'properties':{'preserves-vector-representation':True}}))
@@ -38,7 +38,7 @@ projectConfigs=configs('project',common)
 for target in ['app','widget']:
  files=[]
  for p,r in refs.items():
-  included=(p.startswith('Shared/') and (target=='app' or p not in ['Shared/OpenAICostClient.swift','Shared/Parsers.swift'])) or p.startswith('App/' if target=='app' else 'Widget/')
+  included=(p.startswith('Shared/') and (target=='app' or p not in ['Shared/OpenAICostClient.swift','Shared/OpenRouterCostClient.swift','Shared/Parsers.swift'])) or p.startswith('App/' if target=='app' else 'Widget/')
   if included: files.append(add(target+p,isa='PBXBuildFile',fileRef=r))
  sources=add(target+'sources',isa='PBXSourcesBuildPhase',buildActionMask=2147483647,files=files,runOnlyForDeploymentPostprocessing=0)
  resource=add(target+'resources',isa='PBXResourcesBuildPhase',buildActionMask=2147483647,files=[add(target+'assets',isa='PBXBuildFile',fileRef=assets)],runOnlyForDeploymentPostprocessing=0)

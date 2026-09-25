@@ -39,12 +39,30 @@ import AppKit
 }
 
 private struct SettingsContent: View {
+    @EnvironmentObject var store: PulseStore
     @ObservedObject private var updates = UpdateController.shared
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                ConnectionsView()
+                Picker("Settings", selection: Binding(
+                    get: { store.settingsProvider },
+                    set: { provider in
+                        store.settingsProvider = provider
+                        if let provider { store.selected = provider }
+                    }
+                )) {
+                    Text("General · All providers").tag(Optional<Provider>.none)
+                    Divider()
+                    ForEach(Provider.allCases) { provider in
+                        Text(provider.name).tag(Optional(provider))
+                    }
+                }.pickerStyle(.menu)
                 Divider()
+                if store.settingsProvider != nil {
+                    ConnectionsView()
+                } else {
+                    GeneralSettingsView()
+                    Divider()
                 HStack {
                     Text("AI Pulse \(UpdateController.version)").font(.headline)
                     Text("Build \(UpdateController.build)").font(.caption).foregroundStyle(.secondary)
@@ -54,6 +72,7 @@ private struct SettingsContent: View {
                 Text(updates.status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 Text("Checks once when Settings first opens after launch, or when you click Check for updates.")
                     .font(.caption).foregroundStyle(.secondary)
+                }
             }.padding(24)
         }.frame(minWidth: 600, idealWidth: 660, minHeight: 440, idealHeight: 740)
     }
