@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+  <channel>
+    <title>AI Pulse</title>
+    <link>https://github.com/mbosschaart/AI-Pulse</link>
+    <description>Signed AI Pulse releases</description>
+    <item>
+      <title>AI Pulse 0.1b</title>
+      <pubDate>Fri, 25 Sep 2026 01:43:18 +0000</pubDate>
+      <sparkle:version>1</sparkle:version>
+      <sparkle:shortVersionString>0.1b</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description>AI Pulse 0.1b. See the GitHub release notes for changes.</description>
+      <enclosure url="https://github.com/mbosschaart/AI-Pulse/releases/download/v0.1b/AI-Pulse-macOS.zip" length="2941988" type="application/octet-stream" sparkle:edSignature="UxzhVThjtQRsuAhP6InvkGdYt19VCsgL3IFlXwBJABa5Z2DHB1BLV78F/+DwnjjDsOul22x2L9RWQkQKb/DMDg==" />
+    </item>
+  </channel>
+</rss>

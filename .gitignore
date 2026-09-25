@@ -1,0 +1,17 @@
+.build/
+build/
+dist/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+Vendor/
+.env*
+*.p12
+*.p8
+*.key
+*.log
+work/
+
+# Local development handover — never publish
+HANDOVER.md
+HANDOVER.MD
