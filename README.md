@@ -21,6 +21,12 @@ Version **1.0** is the first full release, Developer ID signed and notarized by 
 - Cards have individual refresh icons; Compact has one bottom-right refresh icon for all visible providers. Account usage refreshes approximately every five minutes while awake, independently of software update checks.
 - Add the WidgetKit widget through desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing.
 
+### Toolbar view
+
+Click the AI Pulse icon in the macOS menu bar for a quick overview of all visible providers, their usage, and reset dates. Use the refresh icon to update the readings, or right-click the menu-bar icon for Settings, Show Widget, and Quit.
+
+<img src="screenshots/Screenshot_toolbar.png" alt="AI Pulse toolbar popover showing provider usage, reset dates, and a refresh control" width="480">
+
 ### Compact view
 
 Keep all four providers in a small, readable list with transparent glass and a single refresh-all control.
