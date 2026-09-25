@@ -33,6 +33,12 @@ Keep all four providers in a small, readable list with optional status LEDs and 
 
 <img src="screenshots/Screenshot_compact.png" alt="AI Pulse 1.2 Compact view with connection status LEDs and a single bottom-right refresh icon" width="560">
 
+### On your desktop
+
+AI Pulse in Compact view alongside the macOS Calendar and Weather widgets, showing its size and how Clear glass fits into a desktop layout.
+
+<img src="screenshots/Screenshot_Desktop.png" alt="AI Pulse Compact widget below the macOS Calendar and Weather widgets, showing its relative size and Clear glass appearance on the desktop" width="720">
+
 ### Connection health
 
 The global **Connection status LEDs** switch in Settings shows or hides status lights across all providers and views (on by default). A small status light shows connection health: green for a successful current reading, amber when a refresh is needed, red when sign-in is required, and gray for unconnected or manually entered accounts. Freshness follows your chosen refresh rate. The last-updated date appears only in the provider’s Settings.
