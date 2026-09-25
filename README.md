@@ -2,6 +2,8 @@
 
 A native macOS menu-bar app and desktop dashboard for AI subscription usage. Each provider shows billing-period usage cost or the percentage remaining until its reset date.
 
+<img src="screenshots/Screenshot_cards.png" alt="AI Pulse cards arranged in two rows on the desktop, showing usage for Cursor, Claude, OpenAI API, and ChatGPT" width="720">
+
 ## Install
 
 Download the **AI Pulse DMG** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases/latest), open it, and drag **AI Pulse.app** to Applications. A ZIP download is also available. Requires macOS 14 or later; native Liquid Glass styles require macOS 26 or later.
@@ -19,6 +21,12 @@ Version **1.0** is the first full release, Developer ID signed and notarized by 
 - Cards have individual refresh icons; Compact has one bottom-right refresh icon for all visible providers. Account usage refreshes approximately every five minutes while awake, independently of software update checks.
 - Add the WidgetKit widget through desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing.
 
+### Compact view
+
+Keep all four providers in a small, readable list with transparent glass and a single refresh-all control.
+
+<img src="screenshots/Screenshot_compact.png" alt="AI Pulse Compact view with transparent glass, white text, and a single bottom-right refresh icon" width="560">
+
 ## Connect providers
 
 **OpenAI API:** use an organization Admin API key with cost-reading permission. A normal project inference key is insufficient. The default billing window is the UTC calendar month. The key stays in macOS Keychain.
@@ -30,6 +38,12 @@ Version **1.0** is the first full release, Developer ID signed and notarized by 
 **Cursor:** sign in and check the connection. Shows personal remaining allowance when available, otherwise individual billing-period usage cost. Team spending is never substituted, and usage credits are not represented as invoice charges.
 
 Manual cost/percentage entry is also available. Manual values do not auto-renew. Expired or unavailable data is marked rather than replaced by a guessed value.
+
+### Settings
+
+Manage provider connections, choose which cards appear, and change the glass style. Move Settings beside the cards to preview your changes.
+
+<img src="screenshots/Screenshot_settings.png" alt="AI Pulse Settings showing provider connections, visibility, Liquid Glass styles, and update controls" width="560">
 
 ## Software updates
 
