@@ -54,7 +54,7 @@ struct ConnectionsView: View {
                 Picker("Glass style", selection: $glassStyle) {
                     ForEach(GlassCardStyle.allCases) { style in Text(style.title).tag(style) }
                 }.pickerStyle(.segmented)
-                Text("Clear is highly transparent. Smoked adds a darker tint. Both use white text.")
+                Text("Clear balances transparency with a visible glass edge. Smoked adds a darker tint. Both use white text.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Toggle("Open AI Pulse at login", isOn: Binding(get: { store.launchAtLogin }, set: { store.setLogin($0) }))

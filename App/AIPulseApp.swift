@@ -44,13 +44,26 @@ struct MainView: View {
                 case .list:
                     VStack(spacing: 0) {
                         ForEach(store.visibleReadings) { reading in
-                            MetricRow(reading: reading, now: context.date, compact: true, refreshAction: { refresh(reading.provider) }, isRefreshing: store.busy.contains(reading.provider))
+                            MetricRow(reading: reading, now: context.date, compact: true)
                                 .padding(.horizontal, 10).padding(.vertical, 7)
                                 .contentShape(Rectangle())
                                 .contextMenu { dashboardMenu(provider: reading.provider) }
                                 .modifier(ProviderReordering(provider: reading.provider, snap: snap))
                         }
-                    }.padding(.vertical, 3).modifier(CardSurface(radius: 16))
+                    }
+                    .padding(.trailing, 28).padding(.vertical, 3)
+                    .overlay(alignment: .bottomTrailing) {
+                        Button { Task { await store.refreshAll(force: true) } } label: {
+                            Image(systemName: "arrow.clockwise").font(.system(size: 11))
+                                .frame(width: 20, height: 20).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(liquidGlass && glassStyle != .standard ? Color.white : Color.secondary)
+                        .disabled(!store.busy.isEmpty || store.demo)
+                        .help("Refresh all providers").accessibilityLabel("Refresh all providers")
+                        .padding(.trailing, 10).padding(.bottom, 10)
+                    }
+                    .modifier(CardSurface(radius: 16))
                 case .cards:
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(Array(visibleRows.enumerated()), id: \.offset) { _, row in

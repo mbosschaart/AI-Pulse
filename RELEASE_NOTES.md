@@ -1,11 +1,19 @@
-# AI Pulse 0.2b
+# AI Pulse 1.0
 
-Follow-up beta for testing the signed in-place update from 0.1b.
+The first full release of AI Pulse, Developer ID signed and notarized by Apple for macOS 14 and later. Supports Apple Silicon and Intel.
 
-- Updates the displayed version to 0.2b.
-- Retains existing provider connections, card arrangement, visibility, and appearance settings.
-- No provider behavior changes.
+- OpenAI API, ChatGPT Work/Codex, Claude, and Cursor usage cards.
+- Saved card arrangements and a tightly spaced Compact view.
+- Liquid Glass styles, including balanced Clear glass with fully white text.
+- One bottom-right refresh-all icon in Compact; individual refresh controls in Cards.
+- Movable Settings with live appearance changes, provider visibility, and version information.
+- Signed in-place updates, checked on the first Settings opening per session or manually.
+- About credit: Designed by Martijn Bosschaart, 2026.
 
-From 0.1b, open Settings and click Check for updates, then choose Install Update. AI Pulse downloads, verifies, installs in place, and relaunches.
+## Install
 
-Requires macOS 14 or later. Developer ID signed; not notarized.
+Download **AI-Pulse-1.0.dmg**, open it, and drag **AI Pulse.app** to Applications. The **AI-Pulse-macOS.zip** contains the same notarized app. Both packages include Apple's stapled notarization ticket; SHA256SUMS.txt lists download checksums.
+
+Existing users can open Settings and choose **Check for updates** to install in place, preserving connections and layout. GitHub may take a few minutes to refresh the update feed after publication.
+
+Native Liquid Glass requires macOS 26 or later. Provider dashboard integrations depend on their current endpoints; ChatGPT’s displayed allowance is specifically Work/Codex usage.

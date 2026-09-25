@@ -33,7 +33,7 @@ def configs(name,settings):
   st=dict(settings);st['SWIFT_OPTIMIZATION_LEVEL']='-Onone' if config=='Debug' else '-O';st['DEBUG_INFORMATION_FORMAT']='dwarf'
   ids.append(add(name+config,isa='XCBuildConfiguration',buildSettings=st,name=config))
  return add(name+'configs',isa='XCConfigurationList',buildConfigurations=ids,defaultConfigurationIsVisible=0,defaultConfigurationName='Release')
-common={'SDKROOT':'macosx','MACOSX_DEPLOYMENT_TARGET':'14.0','SWIFT_VERSION':'5.0','CLANG_ENABLE_MODULES':'YES','CODE_SIGN_STYLE':'Manual','CODE_SIGN_IDENTITY':'Developer ID Application','DEVELOPMENT_TEAM':'EJ77LX9A8T','ENABLE_HARDENED_RUNTIME':'YES','CURRENT_PROJECT_VERSION':version['build'],'MARKETING_VERSION':version['marketing'],'GENERATE_INFOPLIST_FILE':'NO'}
+common={'SDKROOT':'macosx','MACOSX_DEPLOYMENT_TARGET':'14.0','SWIFT_VERSION':'5.0','CLANG_ENABLE_MODULES':'YES','CODE_SIGN_STYLE':'Manual','CODE_SIGN_INJECT_BASE_ENTITLEMENTS':'NO','CODE_SIGN_IDENTITY':'Developer ID Application','DEVELOPMENT_TEAM':'EJ77LX9A8T','ENABLE_HARDENED_RUNTIME':'YES','CURRENT_PROJECT_VERSION':version['build'],'MARKETING_VERSION':version['marketing'],'GENERATE_INFOPLIST_FILE':'NO'}
 projectConfigs=configs('project',common)
 for target in ['app','widget']:
  files=[]
@@ -57,7 +57,7 @@ proj=root/'AIPulse.xcodeproj';proj.mkdir(exist_ok=True)
 (proj/'project.pbxproj').write_text('// !$*UTF8*$!\n'+encode({'archiveVersion':1,'classes':{},'objectVersion':56,'objects':objects,'rootObject':oid('project')}))
 for target in ['app','widget']:
  info={'CFBundleDisplayName':'AI Pulse','CFBundleExecutable':'$(EXECUTABLE_NAME)','CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleInfoDictionaryVersion':'6.0','CFBundleName':'$(PRODUCT_NAME)','CFBundlePackageType':'APPL' if target=='app' else 'XPC!','CFBundleShortVersionString':'$(MARKETING_VERSION)','CFBundleVersion':'$(CURRENT_PROJECT_VERSION)','LSMinimumSystemVersion':'$(MACOSX_DEPLOYMENT_TARGET)','AIPulseAppGroup':'$(DEVELOPMENT_TEAM).nl.martijn.aipulse'}
- if target=='app': info.update({'AIPulseDisplayVersion':version['display'],'SUFeedURL':'https://raw.githubusercontent.com/mbosschaart/AI-Pulse/main/appcast.xml','SUPublicEDKey':'d454Z+1LhCUYsbGEi/Evx9DHT3kUntR1eOhdXc6BPAg=','SUEnableInstallerLauncherService':True,'SUEnableAutomaticChecks':False,'SUAutomaticallyUpdate':False,'SUAllowsAutomaticUpdates':False,'SUSendProfileInfo':False,'NSPrincipalClass':'NSApplication','CFBundleURLTypes':[{'CFBundleURLName':'AI Pulse','CFBundleURLSchemes':['aipulse']}],'NSHighResolutionCapable':True})
+ if target=='app': info.update({'NSHumanReadableCopyright':'Designed by Martijn Bosschaart, 2026','AIPulseDisplayVersion':version['display'],'SUFeedURL':'https://raw.githubusercontent.com/mbosschaart/AI-Pulse/main/appcast.xml','SUPublicEDKey':'d454Z+1LhCUYsbGEi/Evx9DHT3kUntR1eOhdXc6BPAg=','SUEnableInstallerLauncherService':True,'SUEnableAutomaticChecks':False,'SUAutomaticallyUpdate':False,'SUAllowsAutomaticUpdates':False,'SUSendProfileInfo':False,'NSPrincipalClass':'NSApplication','CFBundleURLTypes':[{'CFBundleURLName':'AI Pulse','CFBundleURLSchemes':['aipulse']}],'NSHighResolutionCapable':True})
  else: info['NSExtension']={'NSExtensionPointIdentifier':'com.apple.widgetkit-extension'}
  (root/'Config'/f'{target}.plist').write_bytes(plistlib.dumps(info))
  ent={'com.apple.security.app-sandbox':True,'com.apple.security.application-groups':['$(DEVELOPMENT_TEAM).nl.martijn.aipulse']}

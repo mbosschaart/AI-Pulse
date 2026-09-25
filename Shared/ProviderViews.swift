@@ -48,7 +48,18 @@ struct CardSurface: ViewModifier {
     var radius: CGFloat = 17
     @ViewBuilder func body(content: Content) -> some View {
         if enabled {
-            if #available(macOS 26.0, *) {
+            if style == .clear {
+                // Fade only the glass layer, keeping all foreground content fully opaque.
+                content.background {
+                    if #available(macOS 26.0, *) {
+                        Color.clear.glassEffect(.clear, in: RoundedRectangle(cornerRadius: radius))
+                            .opacity(0.50)
+                    } else {
+                        RoundedRectangle(cornerRadius: radius).fill(.white.opacity(0.025))
+                    }
+                }
+                .overlay(RoundedRectangle(cornerRadius: radius).strokeBorder(.white.opacity(0.22), lineWidth: 0.75))
+            } else if #available(macOS 26.0, *) {
                 switch style {
                 case .standard:
                     content.glassEffect(.regular.tint(accent.opacity(0.06)), in: RoundedRectangle(cornerRadius: radius))

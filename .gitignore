@@ -15,3 +15,5 @@ work/
 # Local development handover — never publish
 HANDOVER.md
 HANDOVER.MD
+
+.notarize.env

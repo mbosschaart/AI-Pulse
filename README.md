@@ -4,9 +4,9 @@ A native macOS menu-bar app and desktop dashboard for AI subscription usage. Eac
 
 ## Install
 
-Download **AI-Pulse-macOS.zip** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases), unzip, and move **AI Pulse.app** to Applications or your user Applications folder. Requires macOS 14 or later; native Liquid Glass styles require macOS 26 or later.
+Download the **AI Pulse DMG** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases/latest), open it, and drag **AI Pulse.app** to Applications. A ZIP download is also available. Requires macOS 14 or later; native Liquid Glass styles require macOS 26 or later.
 
-Version **0.2b** is the current beta.
+Version **1.0** is the first full release, Developer ID signed and notarized by Apple.
 
 ## Use
 
@@ -16,7 +16,7 @@ Version **0.2b** is the current beta.
 - Drag normally to move the dashboard. Hold **Shift** to move a card. The full card follows the pointer; an edge highlight previews its placement. Drop near top/bottom to create a row, or left/right to join one. Out-of-range drops cancel without exporting clipping files.
 - Each provider configuration has a Show switch. Hidden providers retain their sign-in and pause automatic account checks.
 - Settings offers Liquid Glass in Standard, Clear with white text, or Smoked with white text. The selected style is saved.
-- Each card’s refresh icon checks that provider. Account usage refreshes approximately every five minutes while awake, independently of software update checks.
+- Cards have individual refresh icons; Compact has one bottom-right refresh icon for all visible providers. Account usage refreshes approximately every five minutes while awake, independently of software update checks.
 - Add the WidgetKit widget through desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing.
 
 ## Connect providers

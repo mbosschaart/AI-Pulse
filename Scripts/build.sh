@@ -13,6 +13,9 @@ for component in 'Versions/B/XPCServices/Installer.xpc' 'Versions/B/XPCServices/
     codesign --force --sign "$identity" --options runtime --timestamp --preserve-metadata=entitlements "$framework/$component"
 done
 codesign --force --sign "$identity" --options runtime --timestamp "$framework"
+# Xcode's local build signs the embedded widget without a secure timestamp.
+# Every executable must carry one for Apple notarization.
+codesign --force --sign "$identity" --options runtime --timestamp --preserve-metadata=entitlements "$app_bundle/Contents/PlugIns/AIPulseWidget.appex"
 codesign --force --sign "$identity" --options runtime --timestamp --preserve-metadata=entitlements "$app_bundle"
 codesign --verify --deep --strict "$app_bundle"
 mkdir -p "$project_root/dist"
