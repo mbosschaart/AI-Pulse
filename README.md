@@ -6,7 +6,7 @@ A native macOS menu-bar app and desktop dashboard for AI subscription usage. Eac
 
 Download **AI-Pulse-macOS.zip** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases), unzip, and move **AI Pulse.app** to Applications or your user Applications folder. Requires macOS 14 or later; native Liquid Glass styles require macOS 26 or later.
 
-Version **0.1b** is the first beta.
+Version **0.2b** is the current beta.
 
 ## Use
 
