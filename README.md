@@ -8,7 +8,7 @@ A native macOS menu-bar app and desktop dashboard for AI subscription usage. Eac
 
 Download the **AI Pulse DMG** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases/latest), open it, and drag **AI Pulse.app** to Applications. A ZIP download is also available. Requires macOS 14 or later; native Liquid Glass styles require macOS 26 or later.
 
-Version **1.0** is the first full release, Developer ID signed and notarized by Apple.
+Version **1.1** is Developer ID signed and notarized by Apple.
 
 ## Use
 
@@ -18,7 +18,7 @@ Version **1.0** is the first full release, Developer ID signed and notarized by 
 - Drag normally to move the dashboard. Hold **Shift** to move a card. The full card follows the pointer; an edge highlight previews its placement. Drop near top/bottom to create a row, or left/right to join one. Out-of-range drops cancel without exporting clipping files.
 - Each provider configuration has a Show switch. Hidden providers retain their sign-in and pause automatic account checks.
 - Settings offers Liquid Glass in Standard, Clear with white text, or Smoked with white text. The selected style is saved.
-- Cards have individual refresh icons; Compact has one bottom-right refresh icon for all visible providers. Account usage refreshes approximately every five minutes while awake, independently of software update checks.
+- Cards have individual refresh icons; Compact has one bottom-right refresh icon for all visible providers. Choose automatic usage checks in Settings: **Daily**, **Hourly** (the default), **30 min**, **15 min**, or **5 min**. Manual refresh is always available, independently of software update checks.
 - Add the WidgetKit widget through desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing.
 
 ### Toolbar view
@@ -47,9 +47,11 @@ Manual cost/percentage entry is also available. Manual values do not auto-renew.
 
 ### Settings
 
-Manage provider connections, choose which cards appear, and change the glass style. Move Settings beside the cards to preview your changes.
+Manage provider connections, choose which cards appear, set the refresh rate, and change the glass style. Move Settings beside the cards to preview your changes.
 
-<img src="screenshots/Screenshot_settings.png" alt="AI Pulse Settings showing provider connections, visibility, Liquid Glass styles, and update controls" width="560">
+<img src="screenshots/Screenshot_settings.png" alt="AI Pulse 1.1 Settings showing the refresh rate options with Hourly selected, provider connections, and appearance controls" width="560">
+
+The refresh rate is saved across launches and applies to enabled providers. After sleep, an overdue check runs when the Mac wakes. Longer intervals keep readings valid until their next scheduled check; failed checks and expired allowances remain clearly marked. Desktop widget redraw timing is still controlled by macOS.
 
 ## Software updates
 

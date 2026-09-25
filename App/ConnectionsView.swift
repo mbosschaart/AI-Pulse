@@ -49,6 +49,14 @@ struct ConnectionsView: View {
                 }.disabled(store.busy.contains(store.selected))
             }
             Divider()
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Refresh rate").font(.headline)
+                Picker("Refresh rate", selection: Binding(get: { store.refreshInterval }, set: { store.setRefreshInterval($0) })) {
+                    ForEach(UsageRefreshInterval.allCases) { interval in Text(interval.title).tag(interval) }
+                }.pickerStyle(.segmented).labelsHidden()
+                Text("Automatic usage checks while AI Pulse is running. Hourly by default.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Toggle("Liquid Glass cards", isOn: $liquidGlass).toggleStyle(.switch)
             if liquidGlass {
                 Picker("Glass style", selection: $glassStyle) {
@@ -59,7 +67,7 @@ struct ConnectionsView: View {
             }
             Toggle("Open AI Pulse at login", isOn: Binding(get: { store.launchAtLogin }, set: { store.setLogin($0) }))
                 .font(.caption)
-            Text("Add the desktop widget: right-click your desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing. Keep AI Pulse running for five-minute account checks.")
+            Text("Add the desktop widget: right-click your desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing. Keep AI Pulse running for automatic usage checks.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .disabled(store.demo)

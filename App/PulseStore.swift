@@ -42,6 +42,9 @@ import ServiceManagement
     @Published var error: String?
     @Published var organizations: [(id: String, name: String)] = []
     @Published var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @Published private(set) var refreshInterval: UsageRefreshInterval = .hourly
+    private var usageTimer: Timer?
+    private var lastAutomaticRefresh: Date?
     private var sessions: [Provider: BrowserSession] = [:]
     private var timers = Set<AnyCancellable>()
     private var retryAfter: [Provider: Date] = [:]
@@ -57,7 +60,10 @@ import ServiceManagement
         for index in configurations.indices where configurations[index].provider == .chatgpt && !configurations[index].manualSaved && !configurations[index].connected {
             configurations[index].mode = .automatic
         }
+        refreshInterval = UsageRefreshInterval.saved(defaults.integer(forKey: "usage-refresh-interval"))
+        lastAutomaticRefresh = defaults.object(forKey: "last-automatic-usage-refresh") as? Date
         if demo { readings = Self.demoReadings; return }
+        applyFreshnessWindow()
         let savedOrder = (defaults.stringArray(forKey: "provider-order") ?? []).compactMap(Provider.init(rawValue:))
         providerOrder = (savedOrder + Provider.allCases).reduce(into: []) { order, provider in
             if !order.contains(provider) { order.append(provider) }
@@ -66,13 +72,43 @@ import ServiceManagement
         if !savedRows.isEmpty { cardRows = CardArrangement.normalized(savedRows, including: providerOrder) }
         hiddenProviders = Set(defaults.stringArray(forKey: "hidden-providers") ?? [])
         syncWidget()
-        Timer.publish(every: 300, tolerance: 20, on: .main, in: .common).autoconnect().sink { [weak self] _ in
-            Task { await self?.refreshAll() }
-        }.store(in: &timers)
+        scheduleUsageRefresh()
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification).sink { [weak self] _ in
-            Task { @MainActor in await self?.refreshAll() }
+            Task { @MainActor in await self?.refreshAutomaticallyIfDue() }
         }.store(in: &timers)
-        Task { await refreshAll() }
+    }
+    func setRefreshInterval(_ interval: UsageRefreshInterval) {
+        guard !demo, interval != refreshInterval else { return }
+        refreshInterval = interval
+        defaults.set(interval.rawValue, forKey: "usage-refresh-interval")
+        applyFreshnessWindow()
+        syncWidget()
+        scheduleUsageRefresh()
+    }
+    private func applyFreshnessWindow() {
+        for index in readings.indices { readings[index].staleAfterSeconds = refreshInterval.freshnessWindow }
+        if let data = try? JSONEncoder().encode(readings) { defaults.set(data, forKey: "readings-v1") }
+    }
+    private func scheduleUsageRefresh() {
+        usageTimer?.invalidate()
+        guard !demo else { return }
+        let date = refreshInterval.nextCheck(after: lastAutomaticRefresh, now: Date())
+        let timer = Timer(fire: date, interval: 0, repeats: false) { [weak self] _ in
+            Task { @MainActor in await self?.refreshAutomaticallyIfDue() }
+        }
+        usageTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+    private func refreshAutomaticallyIfDue() async {
+        let now = Date()
+        guard refreshInterval.isDue(after: lastAutomaticRefresh, now: now) else {
+            scheduleUsageRefresh()
+            return
+        }
+        lastAutomaticRefresh = now
+        defaults.set(now, forKey: "last-automatic-usage-refresh")
+        scheduleUsageRefresh()
+        await refreshAll()
     }
     func settings(_ provider: Provider) -> ProviderSettings { configurations.first { $0.provider == provider } ?? ProviderSettings(provider: provider) }
     func reading(_ provider: Provider) -> Reading { readings.first { $0.provider == provider } ?? Reading(provider: provider) }
@@ -96,6 +132,8 @@ import ServiceManagement
     }
     private func publish(_ reading: Reading) {
         guard !demo else { return }
+        var reading = reading
+        reading.staleAfterSeconds = refreshInterval.freshnessWindow
         if let index = readings.firstIndex(where: { $0.provider == reading.provider }) { readings[index] = reading }
         if let data = try? JSONEncoder().encode(readings) { defaults.set(data, forKey: "readings-v1") }
         syncWidget()

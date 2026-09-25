@@ -2,6 +2,40 @@ import XCTest
 @testable import AIPulseCore
 
 final class UsageTests: XCTestCase {
+    func testUsageRefreshDefaultsAndChoices() {
+        XCTAssertEqual(UsageRefreshInterval.saved(0), .hourly)
+        XCTAssertEqual(UsageRefreshInterval.saved(-1), .hourly)
+        XCTAssertEqual(UsageRefreshInterval.allCases.map(\.rawValue), [86400, 3600, 1800, 900, 300])
+        for interval in UsageRefreshInterval.allCases { XCTAssertEqual(UsageRefreshInterval.saved(interval.rawValue), interval) }
+    }
+    func testUsageRefreshDueBoundariesAndWakeResume() {
+        let previous = Date(timeIntervalSince1970: 100000)
+        for interval in UsageRefreshInterval.allCases {
+            let due = previous.addingTimeInterval(interval.seconds)
+            XCTAssertFalse(interval.isDue(after: previous, now: due.addingTimeInterval(-1)))
+            XCTAssertTrue(interval.isDue(after: previous, now: due))
+            XCTAssertEqual(interval.nextCheck(after: previous, now: previous), due)
+            XCTAssertTrue(interval.isDue(after: previous, now: due.addingTimeInterval(3600)))
+        }
+        XCTAssertTrue(UsageRefreshInterval.hourly.isDue(after: nil, now: previous))
+        XCTAssertTrue(UsageRefreshInterval.hourly.isDue(after: previous.addingTimeInterval(10), now: previous))
+        let later = previous.addingTimeInterval(1800)
+        XCTAssertFalse(UsageRefreshInterval.hourly.isDue(after: previous, now: later))
+        XCTAssertTrue(UsageRefreshInterval.fifteenMinutes.isDue(after: previous, now: later))
+    }
+    func testReadingFreshnessFollowsSelectedRefreshRate() throws {
+        let fetched = Date(timeIntervalSince1970: 100000)
+        for interval in UsageRefreshInterval.allCases {
+            var reading = Reading(provider: .openai, value: 10, fetchedAt: fetched, state: .ready)
+            reading.staleAfterSeconds = interval.freshnessWindow
+            XCTAssertFalse(reading.isStale(at: fetched.addingTimeInterval(interval.seconds)))
+            XCTAssertTrue(reading.isStale(at: fetched.addingTimeInterval(interval.freshnessWindow + 1)))
+            reading.state = .failed
+            XCTAssertTrue(reading.isStale(at: fetched))
+        }
+        let legacy = try JSONDecoder().decode(Reading.self, from: JSONEncoder().encode(Reading(provider: .openai)))
+        XCTAssertNil(legacy.staleAfterSeconds)
+    }
     func testUpdateChecksOnlyOnFirstSettingsOpeningPerSession() {
         var policy = UpdateCheckPolicy()
         XCTAssertFalse(policy.hasOpenedSettings)
@@ -227,16 +261,7 @@ final class CostClientTests: XCTestCase {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubURLProtocol.self]
         let session = URLSession(configuration: configuration)
-        func testUpdateChecksOnlyOnFirstSettingsOpeningPerSession() {
-        var policy = UpdateCheckPolicy()
-        XCTAssertFalse(policy.hasOpenedSettings)
-        XCTAssertTrue(policy.settingsOpened())
-        XCTAssertFalse(policy.settingsOpened())
-        XCTAssertFalse(policy.settingsOpened())
-        var nextSession = UpdateCheckPolicy()
-        XCTAssertTrue(nextSession.settingsOpened())
-    }
-    let now = UsageParser.date("2026-09-25T10:00:00Z")!
+        let now = UsageParser.date("2026-09-25T10:00:00Z")!
         var requests = 0
         StubURLProtocol.handler = { request in
             requests += 1

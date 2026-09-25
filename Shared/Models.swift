@@ -32,6 +32,7 @@ struct Reading: Codable, Equatable, Identifiable, Sendable {
     var periodStart: Date?
     var periodEnd: Date?
     var window = ""
+    var staleAfterSeconds: TimeInterval?
     var fetchedAt: Date?
     var state: ReadingState = .disconnected
     var detail = "Connect your account in AI Pulse."
@@ -40,7 +41,7 @@ struct Reading: Codable, Equatable, Identifiable, Sendable {
 
     func isExpired(at now: Date) -> Bool { periodEnd.map { $0 <= now } ?? false }
     func isStale(at now: Date) -> Bool {
-        !manual && (state != .ready || fetchedAt.map { now.timeIntervalSince($0) > 900 } ?? true)
+        !manual && (state != .ready || fetchedAt.map { now.timeIntervalSince($0) > (staleAfterSeconds ?? 900) } ?? true)
     }
     func headline(at now: Date = Date()) -> String {
         guard !isExpired(at: now), let value else {

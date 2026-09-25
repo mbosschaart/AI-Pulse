@@ -1,19 +1,19 @@
-# AI Pulse 1.0
+# AI Pulse 1.1
 
-The first full release of AI Pulse, Developer ID signed and notarized by Apple for macOS 14 and later. Supports Apple Silicon and Intel.
+Choose how often AI Pulse refreshes your usage in Settings:
 
-- OpenAI API, ChatGPT Work/Codex, Claude, and Cursor usage cards.
-- Saved card arrangements and a tightly spaced Compact view.
-- Liquid Glass styles, including balanced Clear glass with fully white text.
-- One bottom-right refresh-all icon in Compact; individual refresh controls in Cards.
-- Movable Settings with live appearance changes, provider visibility, and version information.
-- Signed in-place updates, checked on the first Settings opening per session or manually.
-- About credit: Designed by Martijn Bosschaart, 2026.
+- Daily
+- Hourly — the new default
+- Every 30 minutes
+- Every 15 minutes
+- Every 5 minutes
+
+Your selection is saved and takes effect immediately. Manual refresh remains available. After sleep, AI Pulse checks when the selected interval is due. Readings use the selected interval when determining whether they are stale.
+
+The Settings screenshot in the README has been updated to show the new controls. Software-update checks remain separate: once when Settings first opens per session, or when you click Check for updates.
 
 ## Install
 
-Download **AI-Pulse-1.0.dmg**, open it, and drag **AI Pulse.app** to Applications. The **AI-Pulse-macOS.zip** contains the same notarized app. Both packages include Apple's stapled notarization ticket; SHA256SUMS.txt lists download checksums.
+Download **AI-Pulse-1.1.dmg** and drag AI Pulse to Applications, or use **AI-Pulse-macOS.zip**. Both contain the Developer ID signed, Apple-notarized app with a stapled ticket. SHA256SUMS.txt includes checksums.
 
-Existing users can open Settings and choose **Check for updates** to install in place, preserving connections and layout. GitHub may take a few minutes to refresh the update feed after publication.
-
-Native Liquid Glass requires macOS 26 or later. Provider dashboard integrations depend on their current endpoints; ChatGPT’s displayed allowance is specifically Work/Codex usage.
+Existing users can install through Settings → Check for updates. Requires macOS 14 or later; native Liquid Glass requires macOS 26 or later.
