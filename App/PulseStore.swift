@@ -53,6 +53,8 @@ import Darwin
         SettingsWindowController.shared.show(store: self)
     }
     @Published var error: String?
+    @Published var cursorWorkspaceError: String?
+    @Published var cursorWorkspaces: [CursorWorkspace] = []
     @Published var organizations: [(id: String, name: String)] = []
     static var isInstalledForLogin: Bool {
         let parent = Bundle.main.bundleURL.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL
@@ -79,6 +81,29 @@ import Darwin
     private var timers = Set<AnyCancellable>()
     private var retryAfter: [Provider: Date] = [:]
     private var failures: [Provider: Int] = [:]
+    private var networkFailures: [Provider: Int] = [:]
+    private var networkRetryTimers: [Provider: Timer] = [:]
+
+    private func cancelNetworkRetry(_ provider: Provider) {
+        networkRetryTimers.removeValue(forKey: provider)?.invalidate()
+    }
+    private func scheduleNetworkRetry(_ provider: Provider, version: Int, delay: TimeInterval) {
+        cancelNetworkRetry(provider)
+        let timer = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.cancelNetworkRetry(provider)
+                guard self.generation[provider, default: 0] == version,
+                      self.isEnabled(provider), self.settings(provider).mode == .automatic else { return }
+                // The one-shot timer has elapsed; avoid sub-millisecond deadline skew.
+                self.retryAfter[provider] = nil
+                // Preserve the retry budget and the normal hourly/daily cadence.
+                await self.refresh(provider, force: false)
+            }
+        }
+        networkRetryTimers[provider] = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
     private var generation: [Provider: Int] = [:]
     private let defaults = UserDefaults.standard
     let demo: Bool
@@ -94,6 +119,7 @@ import Darwin
         for index in configurations.indices where configurations[index].provider == .chatgpt && !configurations[index].manualSaved && !configurations[index].connected {
             configurations[index].mode = .automatic
         }
+        cursorWorkspaces = configurations.first(where: { $0.provider == .cursor })?.cursorWorkspaces ?? []
         refreshInterval = UsageRefreshInterval.saved(defaults.integer(forKey: "usage-refresh-interval"))
         lastAutomaticRefresh = defaults.object(forKey: "last-automatic-usage-refresh") as? Date
         if demo {
@@ -152,18 +178,22 @@ import Darwin
     func reading(_ provider: Provider) -> Reading { readings.first { $0.provider == provider } ?? Reading(provider: provider) }
     func configure(_ value: ProviderSettings) {
         guard !demo else { return }
+        cancelNetworkRetry(value.provider)
+        networkFailures[value.provider] = 0
         let previous = settings(value.provider)
         generation[value.provider, default: 0] += 1
         if let index = configurations.firstIndex(where: { $0.provider == value.provider }) { configurations[index] = value }
         else { configurations.append(value) }
         if let data = try? JSONEncoder().encode(configurations) { defaults.set(data, forKey: "accounts-v1") }
         retryAfter[value.provider] = nil
-        if previous.mode != value.mode || previous.organizationID != value.organizationID || previous.billingDay != value.billingDay {
+        if previous.mode != value.mode || previous.organizationID != value.organizationID || previous.billingDay != value.billingDay || previous.cursorWorkspaceID != value.cursorWorkspaceID {
             publish(Reading(provider: value.provider, kind: value.provider.defaultMetricKind,
                             state: .unavailable, detail: "Account settings changed. Check the connection to load a new reading."))
         }
     }
     func invalidate(_ provider: Provider) {
+        cancelNetworkRetry(provider)
+        networkFailures[provider] = 0
         generation[provider, default: 0] += 1
         publish(Reading(provider: provider, kind: provider.defaultMetricKind,
                         state: .unavailable, detail: "Check the connection after signing in or changing credentials."))
@@ -190,6 +220,39 @@ import Darwin
         sessions[provider] = session
         return session
     }
+    func loadCursorWorkspaces() async {
+        guard !demo, !busy.contains(.cursor) else { return }
+        busy.insert(.cursor)
+        defer { busy.remove(.cursor) }
+        cursorWorkspaceError = nil
+        do {
+            cursorWorkspaces = try CursorWorkspace.parse(await browser(.cursor).json(path: "/api/dashboard/teams", body: "{\"activeOnly\":true}"))
+        } catch {
+            cursorWorkspaceError = "Could not load Cursor teams. Close any sign-in windows, then try again."
+        }
+    }
+    private func cursorReading(_ config: ProviderSettings) async throws -> Reading {
+        let session = browser(.cursor)
+        guard let scope = config.cursorWorkspaceID, !scope.isEmpty else {
+            return try UsageParser.cursor(await session.json(path: "/api/usage-summary"))
+        }
+        let teams = try CursorWorkspace.parse(await session.json(path: "/api/dashboard/teams", body: "{\"activeOnly\":true}"))
+        cursorWorkspaces = teams
+        if scope == "all" {
+            var summaries: [(CursorWorkspace, Data)] = []
+            for team in teams {
+                summaries.append((team, try await session.json(path: "/api/usage-summary", cursorTeamID: team.id)))
+            }
+            return try CursorWorkspaceUsage.combined(summaries)
+        }
+        guard let id = Int(scope), let team = teams.first(where: { $0.id == id }) else {
+            throw UsageError.unavailable("The selected Cursor team is no longer available. Choose another team in Settings.")
+        }
+        var result = try UsageParser.cursor(await session.json(path: "/api/usage-summary", cursorTeamID: id))
+        result.window = result.window.isEmpty ? team.name : result.window + " · " + team.name
+        result.detail = "Your usage in " + team.name + ". " + result.detail
+        return result
+    }
     func signIn(_ provider: Provider) { invalidate(provider); browser(provider).show() }
     func refreshAll(force: Bool = false) async {
         guard !demo else { return }
@@ -203,6 +266,8 @@ import Darwin
         let config = settings(provider)
         guard force || retryAfter[provider].map({ $0 <= Date() }) ?? true else { return }
         guard config.connected || config.mode == .manual || force else { return }
+        cancelNetworkRetry(provider)
+        if force { networkFailures[provider] = 0 }
         let version = generation[provider, default: 0]
         busy.insert(provider)
         defer { busy.remove(provider) }
@@ -237,7 +302,7 @@ import Darwin
                     let data = try await browser(.claude).json(path: "/api/organizations/\(id)/usage")
                     result = try UsageParser.claude(data)
                 case .cursor:
-                    result = try UsageParser.cursor(await browser(.cursor).json(path: "/api/usage-summary"))
+                    result = try await cursorReading(config)
                 case .chatgpt:
                     result = try UsageParser.chatgpt(await browser(.chatgpt).json(path: "/backend-api/wham/usage"))
                 }
@@ -252,17 +317,26 @@ import Darwin
             publish(result)
         } catch {
             guard generation[provider, default: 0] == version else { return }
+            let transient = NetworkRetryPolicy.isTransient(error)
             var last = reading(provider)
             last.state = .failed
             if case UsageError.unauthorized = error { last.state = .reconnect }
             if case UsageError.openAIAuthentication = error { last.state = .reconnect }
             if case UsageError.unavailable = error { last.state = .unavailable }
-            if error is UsageError { last.detail = error.localizedDescription }
+            if transient { last.detail = UsageError.network.localizedDescription }
+            else if error is UsageError { last.detail = error.localizedDescription }
             else if provider.usesAPIKey { last.detail = "\(provider.name) could not complete the cost request (error \((error as NSError).code)). Try again." }
             else { last.detail = "Could not read the provider dashboard. Open its sign-in window and try again." }
             failures[provider, default: 0] += 1
             var delay = min(3600.0, 300 * pow(2, Double(failures[provider, default: 1] - 1)))
             if case UsageError.rateLimited = error { delay = max(delay, 900) }
+            if transient {
+                networkFailures[provider, default: 0] += 1
+                if let shortDelay = NetworkRetryPolicy.delay(afterFailure: networkFailures[provider, default: 1]) {
+                    delay = shortDelay
+                    scheduleNetworkRetry(provider, version: version, delay: delay)
+                }
+            } else { networkFailures[provider] = 0 }
             retryAfter[provider] = Date().addingTimeInterval(delay)
             publish(last)
         }
@@ -273,6 +347,7 @@ import Darwin
         publish(result)
     }
     func disconnect(_ provider: Provider) async {
+        cancelNetworkRetry(provider)
         generation[provider, default: 0] += 1
         do {
             if provider.usesAPIKey { try Credentials.remove(provider.credentialAccount) }

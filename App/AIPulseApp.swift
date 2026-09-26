@@ -11,20 +11,20 @@ import WidgetKit
 
 @MainActor final class PulseAppDelegate: NSObject, NSApplicationDelegate {
     private var store: PulseStore?
-    private var dashboardWindow: NSWindow?
+    private var dashboardWindow: DashboardWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let store = PulseStore()
         self.store = store
         StatusBarController.shared.configure(store: store)
         let content = MainView().environmentObject(store)
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 580),
-                              styleMask: [.borderless], backing: .buffered, defer: false)
+        let window = DashboardWindow(savesPosition: !store.demo)
         window.title = "AI Pulse"
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: content)
         dashboardWindow = window
         StatusBarController.shared.attachDashboard(window)
+        window.restorePosition()
         if store.showDesktopWidget { window.orderFront(nil) }
     }
 
@@ -36,6 +36,7 @@ import WidgetKit
         }
         application.activate(ignoringOtherApps: true)
     }
+    func applicationWillTerminate(_ notification: Notification) { dashboardWindow?.savePosition() }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         StatusBarController.shared.reopen()

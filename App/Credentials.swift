@@ -35,5 +35,10 @@ final class SameHostRedirects: NSObject, URLSessionTaskDelegate {
                     newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
         completionHandler(request.url?.scheme == "https" && request.url?.host == task.originalRequest?.url?.host ? request : nil)
     }
-    static let session = URLSession(configuration: .ephemeral, delegate: SameHostRedirects(), delegateQueue: nil)
+    static let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.waitsForConnectivity = true
+        configuration.timeoutIntervalForResource = 90
+        return URLSession(configuration: configuration, delegate: SameHostRedirects(), delegateQueue: nil)
+    }()
 }

@@ -8,7 +8,7 @@ A native macOS menu-bar app and desktop dashboard for AI subscription usage. Eac
 
 Download the **AI Pulse DMG** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases/latest), open it, and drag **AI Pulse.app** to Applications. A ZIP download is also available. Requires macOS 14 or later; native Liquid Glass styles require macOS 26 or later.
 
-Version **1.4** is Developer ID signed and notarized by Apple.
+Version **1.5** is Developer ID signed and notarized by Apple.
 
 ## Use
 
@@ -79,3 +79,7 @@ There are **no scheduled or app-launch update checks**, automatic downloads, or 
 No backend, telemetry, browser-profile import, or cloud account. Provider sign-ins use separate persistent app-owned WebKit stores. Passwords are entered on the providers’ pages. Credentials and raw account responses are never shared with the widget. Only sanitized readings and appearance preferences are written to the App Group. Software-update requests go to GitHub; Sparkle system-profile reporting is disabled.
 
 OpenAI uses its documented Costs API. ChatGPT, Claude, and Cursor integrations use private same-origin dashboard endpoints and may need maintenance when those providers change. Complete MFA on the provider page. Failed checks keep a marked last-known reading and use retry backoff.
+
+### Cursor teams
+
+In Settings → Cursor, click **Load teams**, choose a **Team / workspace** or **All teams · combined personal cost**, then click **Check connection**. The choice is remembered. Combined usage adds only your personal costs for matching billing periods; it excludes other members and fixed subscription fees. If periods differ or a personal cost total is missing, choose an individual team.

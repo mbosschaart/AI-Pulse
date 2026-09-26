@@ -78,6 +78,22 @@ struct ConnectionsView: View {
             Text("Sign in directly on the provider’s website. Close the sign-in window, then check the connection. Your session stays in this app’s private WebKit storage on this Mac.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button("Sign in to \(store.selected.name)") { store.signIn(store.selected) }
+            if store.selected == .cursor {
+                Picker("Team / workspace", selection: Binding(get: { config.cursorWorkspaceID ?? "" }, set: { config.cursorWorkspaceID = $0 })) {
+                    Text("Current dashboard team").tag("")
+                    Text("All teams · combined personal cost").tag("all")
+                    ForEach(store.cursorWorkspaces) { team in Text(team.name).tag(String(team.id)) }
+                    if let saved = config.cursorWorkspaceID, !saved.isEmpty, saved != "all",
+                       !store.cursorWorkspaces.contains(where: { String($0.id) == saved }) {
+                        Text("Previously selected team (reload teams)").tag(saved)
+                    }
+                }
+                Button("Load teams") { Task { await store.loadCursorWorkspaces() } }
+                    .disabled(store.busy.contains(.cursor))
+                Text("Choose a team or combine your personal costs across teams with matching billing periods. Click Check connection to save.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if let message = store.cursorWorkspaceError { Text(message).font(.caption).foregroundStyle(.secondary) }
+            }
             if store.selected == .claude {
                 if !store.organizations.isEmpty {
                     Picker("Organization", selection: $config.organizationID) {
@@ -89,7 +105,7 @@ struct ConnectionsView: View {
             Text(store.selected == .chatgpt
                  ? "Tracks your shared ChatGPT Work/Codex allowance. Shows the lowest remaining usage window and its reset date; this is not an overall quota for every ChatGPT feature."
                  : store.selected == .cursor
-                 ? "Shows your remaining allowance, or personal billing-period usage cost when no individual allowance is set. Team-wide spending is never substituted for your own."
+                 ? "For one team, shows your allowance or personal usage cost. All teams adds personal costs only; other members’ spending and subscription fees are excluded."
                  : "Tracks the lowest remaining allowance and that allowance’s reset date. Dashboard integrations can change; failed checks never become 0% or 100%.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
@@ -128,6 +144,7 @@ struct ConnectionsView: View {
         catch { feedback = error.localizedDescription }
     }
     func saveAndCheck() {
+        if store.selected == .cursor { config.cursorWorkspaces = store.cursorWorkspaces }
         do {
             if store.selected.usesAPIKey && !key.isEmpty {
                 try Credentials.save(key.trimmingCharacters(in: .whitespacesAndNewlines), account: store.selected.credentialAccount)

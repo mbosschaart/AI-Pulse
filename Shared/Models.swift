@@ -100,6 +100,7 @@ struct Reading: Codable, Equatable, Identifiable, Sendable {
     }
     var metricLabel: String {
         if let spendAllowanceLabel { return "left " + spendAllowanceLabel }
+        if provider == .cursor, kind == .cost, !window.isEmpty { return window }
         return kind == .cost ? (provider == .openrouter ? "this month · USD" : "this billing period") : (window.isEmpty ? "remaining" : "left · \(window)")
     }
     static var empty: [Reading] { Provider.allCases.map { Reading(provider: $0, kind: $0.defaultMetricKind) } }
@@ -110,6 +111,8 @@ struct ProviderSettings: Codable, Equatable {
     var mode: ConnectionMode = .automatic
     var connected = false
     var organizationID = ""
+    var cursorWorkspaceID: String?
+    var cursorWorkspaces: [CursorWorkspace]?
     var billingDay = 1
     var manualKind: MetricKind = .cost
     var manualValue: Double = 0

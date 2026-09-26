@@ -5,6 +5,8 @@ import SwiftUI
 @MainActor final class BrowserSession: NSObject, WKNavigationDelegate, WKUIDelegate, NSWindowDelegate {
     let provider: Provider
     let webView: WKWebView
+    private var pageReady = false
+    private var navigationError: Error?
     private var window: NSWindow?
     private var popups: [ObjectIdentifier: NSWindow] = [:]
     private var statusLabels: [ObjectIdentifier: NSTextField] = [:]
@@ -77,14 +79,21 @@ import SwiftUI
         await webView.configuration.websiteDataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
         webView.loadHTMLString("", baseURL: nil)
     }
-    func json(path: String) async throws -> Data {
+    func json(path: String, body: String? = nil, cursorTeamID: Int? = nil) async throws -> Data {
         guard !isSigningIn else { throw UsageError.unavailable("Finish signing in and close the sign-in windows before checking the connection.") }
-        if webView.url?.host != provider.website.host {
+        if !pageReady || webView.url?.host != provider.website.host {
+            pageReady = false
+            navigationError = nil
             webView.load(URLRequest(url: provider.website))
             for _ in 0..<80 {
                 try await Task.sleep(nanoseconds: 250_000_000)
-                if !webView.isLoading && webView.url?.host == provider.website.host { break }
+                if let navigationError { throw navigationError }
+                if pageReady { break }
             }
+        }
+        guard pageReady else {
+            webView.stopLoading()
+            throw UsageError.network
         }
         guard webView.url?.host == provider.website.host, webView.url?.scheme == "https" else { throw UsageError.unauthorized }
         let script = """
@@ -100,14 +109,23 @@ import SwiftUI
             if (!auth.accessToken) return JSON.stringify({status:401, body:''});
             headers.Authorization = 'Bearer ' + auth.accessToken;
           }
-          const r = await fetch(path, {credentials:'include', cache:'no-store', redirect:'error', signal:abort.signal, headers});
+          if (body !== null) headers['Content-Type'] = 'application/json';
+          const target = new URL(path, location.origin);
+          if (cursorTeamID !== null) target.searchParams.set('teamId', String(cursorTeamID));
+          const r = await fetch(target, {method:body === null ? 'GET' : 'POST', body:body === null ? undefined : body, credentials:'include', cache:'no-store', redirect:'error', signal:abort.signal, headers});
           return JSON.stringify({status:r.status, body:await r.text()});
+        } catch (error) {
+          if (error.name === 'AbortError' || error.name === 'TypeError') {
+            return JSON.stringify({networkFailure:true});
+          }
+          throw error;
         } finally { clearTimeout(timer); }
         """
-        let result = try await webView.callAsyncJavaScript(script, arguments: ["path": path, "chatgpt": provider == .chatgpt], in: nil, contentWorld: .defaultClient)
+        let result = try await webView.callAsyncJavaScript(script, arguments: ["path": path, "chatgpt": provider == .chatgpt, "body": body as Any? ?? NSNull(), "cursorTeamID": cursorTeamID as Any? ?? NSNull()], in: nil, contentWorld: .defaultClient)
         guard let text = result as? String, let data = text.data(using: .utf8),
-              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let status = json["status"] as? Int, let body = json["body"] as? String else { throw UsageError.malformed }
+              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw UsageError.malformed }
+        if json["networkFailure"] as? Bool == true { throw UsageError.network }
+        guard let status = json["status"] as? Int, let body = json["body"] as? String else { throw UsageError.malformed }
         return try Self.checked(status: status, body: Data(body.utf8))
     }
     static func checked(status: Int, body: Data) throws -> Data {
@@ -140,7 +158,11 @@ import SwiftUI
         popups.removeValue(forKey: entry.key)
         statusLabels.removeValue(forKey: entry.key)
     }
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        if webView === self.webView { pageReady = false; navigationError = nil }
+    }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if webView === self.webView { pageReady = true; navigationError = nil }
         statusLabels[ObjectIdentifier(webView)]?.stringValue = webView.url?.host ?? "Sign-in window · use Return to usage if this page is blank"
     }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -152,10 +174,12 @@ import SwiftUI
     private func showNavigationError(_ error: Error, in view: WKWebView) {
         let code = (error as NSError).code
         guard code != NSURLErrorCancelled else { return }
+        if view === webView { pageReady = false; navigationError = error }
         // Do not display callback URLs or OAuth parameters from the underlying error.
         statusLabels[ObjectIdentifier(view)]?.stringValue = "Page failed to load (\(code)). Reload or return to usage to retry."
     }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        if webView === self.webView { pageReady = false; navigationError = UsageError.network }
         statusLabels[ObjectIdentifier(webView)]?.stringValue = "The sign-in page stopped. Click Reload to try again."
     }
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
