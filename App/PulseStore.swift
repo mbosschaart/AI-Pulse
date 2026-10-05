@@ -30,6 +30,13 @@ import Darwin
         defaults.set(providerOrder.map(\.rawValue), forKey: "provider-order")
         syncWidget()
     }
+    func arrangeWidgetProvider(_ source: Provider, relativeTo target: Provider, placement: CardPlacement) {
+        guard !demo else { return }
+        providerOrder = Array(CardArrangement.moving(source, relativeTo: target, placement: placement,
+            in: providerOrder.map { [$0] }).joined())
+        defaults.set(providerOrder.map(\.rawValue), forKey: "provider-order")
+        syncWidget()
+    }
     func isEnabled(_ provider: Provider) -> Bool { !hiddenProviders.contains(provider.rawValue) }
     func setEnabled(_ enabled: Bool, for provider: Provider) {
         guard !demo else { return }
@@ -48,6 +55,7 @@ import Darwin
         StatusBarController.shared.updateDashboardVisibility()
     }
     func openSettings(provider: Provider? = nil) {
+        ProviderArrangementWindow.shared.window?.orderOut(nil)
         if let provider { selected = provider }
         settingsProvider = provider
         SettingsWindowController.shared.show(store: self)

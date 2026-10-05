@@ -33,13 +33,15 @@ import WidgetKit
         for url in urls {
             if let raw = url.host, let provider = Provider(rawValue: raw) { store.openSettings(provider: provider) }
             if url.host == "settings" { store.openSettings() }
+            // Older widget snapshots may still carry the retired Arrange link.
+            if url.host == "arrange" { store.openSettings() }
         }
         application.activate(ignoringOtherApps: true)
     }
     func applicationWillTerminate(_ notification: Notification) { dashboardWindow?.savePosition() }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        StatusBarController.shared.reopen()
+        store?.openSettings()
         return false
     }
 }
@@ -124,9 +126,7 @@ struct MainView: View {
                DashboardLayout(rawValue: saved) == nil { layout = .cards }
             syncAppearance()
         }
-        .onChange(of: liquidGlass) { _, _ in syncAppearance() }
         .onChange(of: connectionLEDs) { _, _ in syncAppearance() }
-        .onChange(of: glassStyle) { _, _ in syncAppearance() }
         .contentShape(Rectangle())
         .contextMenu { dashboardMenu() }
         .alert("AI Pulse", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
@@ -134,7 +134,7 @@ struct MainView: View {
         } message: { Text(store.error ?? "") }
     }
     private func syncAppearance() {
-        do { try SnapshotStore.writeConnectionLEDsEnabled(connectionLEDs); try SnapshotStore.writeGlassEnabled(liquidGlass); try SnapshotStore.writeGlassStyle(glassStyle.rawValue); WidgetCenter.shared.reloadAllTimelines() }
+        do { try SnapshotStore.writeConnectionLEDsEnabled(connectionLEDs); WidgetCenter.shared.reloadAllTimelines() }
         catch { store.error = "Could not save widget appearance." }
     }
     private var initialRows: [[Provider]] {
@@ -403,7 +403,7 @@ struct BorderlessDashboardWindow: NSViewRepresentable {
         if NSApp.currentEvent?.type == .rightMouseUp || NSApp.currentEvent?.modifierFlags.contains(.control) == true {
             popover.performClose(nil)
             let menu = NSMenu()
-            let show = menu.addItem(withTitle: store?.showDesktopWidget == true ? "Hide Widget" : "Show Widget", action: #selector(showCards), keyEquivalent: "")
+            let show = menu.addItem(withTitle: store?.showDesktopWidget == true ? "Hide Floating Dashboard" : "Show Floating Dashboard", action: #selector(showCards), keyEquivalent: "")
             show.target = self
             let settings = menu.addItem(withTitle: "Settings…", action: #selector(settings), keyEquivalent: "")
             settings.target = self

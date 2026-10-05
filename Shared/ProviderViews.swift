@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 extension Provider {
     var accent: Color {
@@ -13,13 +14,21 @@ extension Provider {
 }
 
 struct ProviderLogo: View {
+    @Environment(\.liquidGlassCards) private var glassEnabled
+    @Environment(\.nativeWidgetAppearance) private var nativeWidget
     let provider: Provider
     var size: CGFloat = 28
     var body: some View {
-        Image(provider.logo).resizable().scaledToFit().padding(size * 0.17)
-            .frame(width: size, height: size)
-            .background(.white, in: RoundedRectangle(cornerRadius: size * 0.25))
-            .accessibilityHidden(true)
+        Group {
+            if nativeWidget || glassEnabled {
+                Image(provider.logo + "-glass").renderingMode(.template)
+                    .resizable().scaledToFit().padding(size * 0.12)
+                    .foregroundStyle(nativeWidget ? Color.primary : Color.white)
+            } else {
+                Image(provider.logo).resizable().scaledToFit().padding(size * 0.17)
+                    .background(.white, in: RoundedRectangle(cornerRadius: size * 0.25))
+            }
+        }.frame(width: size, height: size).accessibilityHidden(true)
     }
 }
 
@@ -30,10 +39,15 @@ enum GlassCardStyle: String, CaseIterable, Identifiable {
         switch self { case .standard: "Standard"; case .clear: "Clear · white text"; case .smoked: "Smoked · white text" }
     }
 }
+private struct NativeWidgetAppearanceKey: EnvironmentKey { static let defaultValue = false }
 private struct ConnectionLEDVisibilityKey: EnvironmentKey { static let defaultValue: Bool? = nil }
 private struct GlassCardStyleKey: EnvironmentKey { static let defaultValue = GlassCardStyle.standard }
 private struct LiquidGlassCardsKey: EnvironmentKey { static let defaultValue = false }
 extension EnvironmentValues {
+    var nativeWidgetAppearance: Bool {
+        get { self[NativeWidgetAppearanceKey.self] }
+        set { self[NativeWidgetAppearanceKey.self] = newValue }
+    }
     var connectionLEDVisibility: Bool? {
         get { self[ConnectionLEDVisibilityKey.self] }
         set { self[ConnectionLEDVisibilityKey.self] = newValue }
@@ -48,12 +62,15 @@ extension EnvironmentValues {
     }
 }
 struct CardSurface: ViewModifier {
+    @Environment(\.nativeWidgetAppearance) private var nativeWidget
     @Environment(\.liquidGlassCards) private var enabled
     @Environment(\.glassCardStyle) private var style
     var accent: Color = .clear
     var radius: CGFloat = 17
     @ViewBuilder func body(content: Content) -> some View {
-        if enabled {
+        if nativeWidget {
+            content.background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: radius))
+        } else if enabled {
             if style == .clear {
                 // Fade only the glass layer, keeping all foreground content fully opaque.
                 content.background {
@@ -92,20 +109,36 @@ struct ConnectionHealthLED: View {
     let reading: Reading
     var now: Date
     private var health: ConnectionHealth { reading.connectionHealth(at: now) }
-    private var color: Color {
+    private var statusColor: NSColor {
         switch health {
-        case .current: .green
-        case .needsRefresh: .orange
-        case .reconnect: .red
-        case .inactive, .manual: .gray
+        case .current: .systemGreen
+        case .needsRefresh: .systemOrange
+        case .reconnect: .systemRed
+        case .inactive, .manual: .systemGray
+        }
+    }
+    // Preserve semantic status colors in accented widgets; other content follows macOS.
+    private var indicator: Image {
+        let image = NSImage(size: NSSize(width: 14, height: 14), flipped: false) { rect in
+            statusColor.setFill()
+            NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1)).fill()
+            return true
+        }
+        return Image(nsImage: image).renderingMode(.original)
+    }
+    @ViewBuilder private var coloredIndicator: some View {
+        if #available(macOS 26.0, *) {
+            indicator.resizable().widgetAccentedRenderingMode(.fullColor)
+        } else {
+            indicator.resizable()
         }
     }
     var body: some View {
         if visibilityOverride ?? enabled {
-        Circle().fill(color.gradient)
+        coloredIndicator
             .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 0.5))
             .frame(width: 7, height: 7)
-            .shadow(color: color.opacity(0.4), radius: 2)
+            .shadow(color: Color(nsColor: statusColor).opacity(0.4), radius: 2)
             .help(health.label)
             .accessibilityLabel(health.label)
         }
@@ -115,29 +148,32 @@ struct ConnectionHealthLED: View {
 struct MetricCard: View {
     @Environment(\.liquidGlassCards) private var glassEnabled
     @Environment(\.glassCardStyle) private var glassStyle
-    private var whiteText: Bool { glassEnabled && glassStyle != .standard }
+    @Environment(\.nativeWidgetAppearance) private var nativeWidget
+    private var whiteText: Bool { !nativeWidget && glassEnabled && glassStyle != .standard }
 
     let reading: Reading
     var compact = false
+    // Denser Cards layout for fixed-size WidgetKit grids.
+    var widgetDense = false
     var now = Date()
     var refreshAction: (() -> Void)? = nil
     var isRefreshing = false
     private var available: Bool { reading.value != nil && !reading.isExpired(at: now) }
     var body: some View {
-        VStack(alignment: .leading, spacing: compact ? 8 : 14) {
+        VStack(alignment: .leading, spacing: widgetDense ? 3 : (compact ? 8 : 14)) {
             HStack(spacing: 9) {
-                ProviderLogo(provider: reading.provider, size: compact ? 23 : 30)
-                Text(reading.provider.name).font(.system(size: compact ? 12 : 14, weight: .medium))
+                ProviderLogo(provider: reading.provider, size: widgetDense ? 18 : (compact ? 23 : 30))
+                Text(reading.provider.name).font(.system(size: widgetDense ? 10 : (compact ? 12 : 14), weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
                 Spacer(minLength: 0)
                 ConnectionHealthLED(reading: reading, now: now)
             }
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 3) {
                 Text(reading.headline(at: now))
-                    .font(.system(size: available ? (compact ? 30 : 39) : (compact ? 18 : 24), weight: .semibold, design: .rounded))
+                    .font(.system(size: available ? (widgetDense ? 23 : (compact ? 30 : 39)) : (widgetDense ? 14 : (compact ? 18 : 24)), weight: .semibold, design: .rounded))
                     .monospacedDigit().minimumScaleFactor(0.65).lineLimit(1)
                 Text(available ? reading.metricLabel : " ")
-                    .font(.system(size: compact ? 10 : 12)).foregroundStyle(whiteText ? Color.white : Color.secondary).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    .font(.system(size: widgetDense ? 9 : (compact ? 10 : 12))).foregroundStyle(whiteText ? Color.white : Color.secondary).lineLimit(widgetDense ? 1 : 2).fixedSize(horizontal: false, vertical: true)
             }
             if reading.kind == .remaining, let value = reading.value, available {
                 GeometryReader { geo in
@@ -149,8 +185,8 @@ struct MetricCard: View {
                 }.frame(height: 4).accessibilityHidden(true)
             } else { Color.clear.frame(height: 4) }
             HStack(alignment: .bottom, spacing: 6) {
-                Text(reading.subtitle(at: now)).font(.system(size: compact ? 10 : 11))
-                    .foregroundStyle(whiteText ? Color.white : Color.secondary).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                Text(reading.subtitle(at: now)).font(.system(size: widgetDense ? 9 : (compact ? 10 : 11)))
+                    .foregroundStyle(whiteText ? Color.white : Color.secondary).lineLimit(widgetDense ? 1 : 2).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
                 if let refreshAction {
                     ProviderRefreshButton(provider: reading.provider, busy: isRefreshing, action: refreshAction)
@@ -158,7 +194,7 @@ struct MetricCard: View {
             }
         }
         .foregroundStyle(whiteText ? Color.white : Color.primary)
-        .padding(compact ? 13 : 20)
+        .padding(widgetDense ? 8 : (compact ? 13 : 20))
         .modifier(CardSurface(accent: reading.provider.accent, radius: compact ? 17 : 22))
         .accessibilityElement(children: refreshAction == nil ? .combine : .contain)
     }
@@ -167,28 +203,32 @@ struct MetricCard: View {
 struct MetricRow: View {
     @Environment(\.liquidGlassCards) private var glassEnabled
     @Environment(\.glassCardStyle) private var glassStyle
-    private var whiteText: Bool { glassEnabled && glassStyle != .standard }
+    @Environment(\.nativeWidgetAppearance) private var nativeWidget
+    private var whiteText: Bool { !nativeWidget && glassEnabled && glassStyle != .standard }
 
     let reading: Reading
     var now = Date()
     var compact = false
+    var widgetDense = false
     var refreshAction: (() -> Void)? = nil
     var isRefreshing = false
     var body: some View {
         HStack(spacing: 10) {
-            ProviderLogo(provider: reading.provider, size: 25)
+            ProviderLogo(provider: reading.provider, size: widgetDense ? 20 : 25)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(reading.provider.name).font(.system(size: 12, weight: .medium))
+                    Text(reading.provider.name).font(.system(size: 12, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
                     ConnectionHealthLED(reading: reading, now: now)
                 }
-                Text(reading.subtitle(at: now)).font(.system(size: 10)).foregroundStyle(whiteText ? Color.white : Color.secondary).lineLimit(1)
+                if !widgetDense {
+                    Text(reading.subtitle(at: now)).font(.system(size: 10)).foregroundStyle(whiteText ? Color.white : Color.secondary).lineLimit(1)
+                }
             }
             Spacer(minLength: 4)
             VStack(alignment: .trailing, spacing: 1) {
                 Text(reading.headline(at: now))
-                    .font(.system(size: compact ? 14 : 17, weight: .semibold, design: .rounded)).monospacedDigit()
-                if reading.value != nil && !reading.isExpired(at: now) {
+                    .font(.system(size: compact ? 14 : 17, weight: .semibold, design: .rounded)).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+                if !widgetDense && reading.value != nil && !reading.isExpired(at: now) {
                     Text(reading.metricLabel).font(.system(size: 9)).foregroundStyle(whiteText ? Color.white : Color.secondary).lineLimit(1)
                 }
             }
@@ -205,7 +245,8 @@ struct MetricRow: View {
 struct ProviderRefreshButton: View {
     @Environment(\.liquidGlassCards) private var glassEnabled
     @Environment(\.glassCardStyle) private var glassStyle
-    private var whiteText: Bool { glassEnabled && glassStyle != .standard }
+    @Environment(\.nativeWidgetAppearance) private var nativeWidget
+    private var whiteText: Bool { !nativeWidget && glassEnabled && glassStyle != .standard }
 
     let provider: Provider
     let busy: Bool

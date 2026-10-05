@@ -13,7 +13,7 @@ def encode(v):
  if isinstance(v,dict): return '{\n'+''.join(f'{encode(k)} = {encode(x)};\n' for k,x in v.items())+'}'
  if isinstance(v,list): return '('+','.join(encode(x) for x in v)+')'
  return json.dumps(str(v))
-for name in ['openai','claude','cursor','openrouter']:
+for name in ['openai','claude','cursor','openrouter','openai-glass','claude-glass','cursor-glass','openrouter-glass']:
  d=root/'Resources/Assets.xcassets'/f'{name}.imageset';d.mkdir(parents=True,exist_ok=True)
  (d/f'{name}.svg').write_bytes((root/'Resources'/f'{name}.svg').read_bytes())
  (d/'Contents.json').write_text(json.dumps({'images':[{'filename':f'{name}.svg','idiom':'universal'}],'info':{'author':'xcode','version':1},'properties':{'preserves-vector-representation':True}}))

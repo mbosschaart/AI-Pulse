@@ -176,16 +176,19 @@ struct GeneralSettingsView: View {
                 Text("Automatic usage checks while AI Pulse is running. Hourly by default.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Toggle("Show desktop widget", isOn: Binding(get: { store.showDesktopWidget }, set: { store.setDesktopWidgetVisible($0) }))
+            Toggle("Show floating dashboard", isOn: Binding(get: { store.showDesktopWidget }, set: { store.setDesktopWidgetVisible($0) }))
                 .toggleStyle(.switch)
-            Text("Hide the cards to use only the menu-bar overview. AI Pulse continues refreshing and stays available from its menu-bar icon, without a Dock icon.")
+            Text("Hide the floating Cards/Compact window to use the menu bar or native macOS widgets. Automatic usage checks continue.")
                 .font(.caption).foregroundStyle(.secondary)
             Toggle("Connection status LEDs", isOn: $connectionLEDs).toggleStyle(.switch)
             Text("Show status lights for all providers in Cards, Compact, the menu bar overview, and desktop widgets.")
                 .font(.caption).foregroundStyle(.secondary)
-            Toggle("Liquid Glass cards", isOn: $liquidGlass).toggleStyle(.switch)
+            Text("Floating dashboard appearance").font(.headline)
+            Text("Liquid Glass cards and Glass style apply only to the floating dashboard. Native widgets follow macOS System Settings.")
+                .font(.caption).foregroundStyle(.secondary)
+            Toggle("Liquid Glass cards · Floating dashboard", isOn: $liquidGlass).toggleStyle(.switch)
             if liquidGlass {
-                Picker("Glass style", selection: $glassStyle) {
+                Picker("Glass style · Floating dashboard", selection: $glassStyle) {
                     ForEach(GlassCardStyle.allCases) { style in Text(style.title).tag(style) }
                 }.pickerStyle(.segmented)
                 Text("Clear balances transparency with a visible glass edge. Smoked adds a darker tint. Both use white text.")
@@ -197,8 +200,15 @@ struct GeneralSettingsView: View {
             if let message = store.loginStatusMessage {
                 Text(message).font(.caption).foregroundStyle(.secondary)
             }
-            Text("Add the desktop widget: right-click your desktop → Edit Widgets → AI Pulse. macOS controls widget redraw timing. Keep AI Pulse running for automatic usage checks.")
-                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Divider()
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Native macOS widgets", systemImage: "square.grid.2x2").font(.headline)
+                Text("Right-click your desktop → Edit Widgets → AI Pulse, then choose a size.")
+                Text("Small: one provider card. Medium: Compact rows. Large: a single column of provider tiles. Native widgets follow macOS appearance settings. Status light visibility is shared.")
+                Button("Arrange providers…") { ProviderArrangementWindow.shared.show(store: store) }
+                Text("Use Arrange providers to drag rows and hide providers. Leave Follow app order enabled in each widget. In Edit AI Pulse, Hidden always hides a row. Turn Follow app order off only to use the row selectors’ custom order.")
+                Text("macOS fixes the widget’s outer size; the rows fit the number of selected providers. Keep AI Pulse running in the menu bar for fresh usage. macOS controls redraw timing; widgets retain the last readings when the app is closed.")
+            }.font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }.disabled(store.demo)
     }
 }
