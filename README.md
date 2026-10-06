@@ -8,7 +8,7 @@ A native macOS menu-bar app, floating dashboard, and WidgetKit widgets for AI su
 
 Download the **AI Pulse DMG** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases/latest), open it, and drag **AI Pulse.app** to Applications. A ZIP download is also available. Requires macOS 14 or later; the floating dashboard’s native Liquid Glass styles require macOS 26 or later.
 
-Version **1.5** is Developer ID signed and notarized by Apple. This README documents **1.6 (build 9)**, including the latest native-widget improvements. Its release packages are being prepared; the latest published download remains 1.5 until 1.6 is published.
+Version **1.6 (build 9)** is Developer ID signed and notarized by Apple. Both the ZIP and DMG include the stapled app; checksums are available with the release.
 
 ## Choose your view
 
