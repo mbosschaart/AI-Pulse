@@ -1,13 +1,15 @@
-# AI Pulse 1.6
+# AI Pulse 1.7
 
-Native macOS widgets now provide one provider card, minimal Compact rows, or a single column of provider tiles, with configurable provider selection and order.
+Track ElevenLabs alongside your other AI providers.
 
-- Reorder providers by dragging in Settings → Arrange providers, or select a custom order per widget. Hidden rows are excluded with either ordering mode.
-- Medium widgets show only provider, connection status, and usage. Rows stay compact; macOS retains the fixed widget footprint.
-- Native widget appearance follows macOS. Floating dashboard Liquid Glass and glass-style controls remain independent.
-- Adaptive transparent provider logos improve contrast; current connections retain green status LEDs in accented mode.
-- Gallery snapshots use sample readings with transparent backgrounds.
-- Widget app-opening routes lead to Settings; the provider arrangement window stays compact.
-- The complete setup tutorial, screenshots, and dashboard-versus-widget comparison are in [README.md](README.md).
+- ElevenLabs displays the percentage of included subscription allowance remaining and its provider-reported reset date. Add an API key with User → Read access in Settings; credentials stay in macOS Keychain.
+- Available in Cards, Compact, the menu bar, and native macOS widgets. Small widgets can select ElevenLabs; medium and large widgets now offer six configurable rows.
+- Provider arrangement accommodates six providers. Existing provider selections and saved arrangements are preserved.
+- Exhausted included allowance shows 0%. Overage charges and invoice totals are excluded; missing reset dates are not estimated.
+- The full setup guide is in [README.md](https://github.com/mbosschaart/AI-Pulse#readme).
 
-51 core tests pass. Layouts were rendered in light and dark appearances. Actual gallery readability after refreshing stale macOS registrations still awaits confirmation.
+57 tests pass, app and widget builds pass, and minimum-size widget layouts were visually checked. A live ElevenLabs account refresh was verified in Settings.
+
+Requires macOS 14 or later. ZIP and DMG contain the universal Developer ID signed, Apple-notarized app with a stapled ticket. SHA256SUMS.txt contains package checksums.
+
+Known issue: native widgets can retain stale readings after an in-place update. Automatic post-update widget recovery remains queued; it is not fixed in this release.

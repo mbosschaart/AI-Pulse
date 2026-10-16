@@ -3,15 +3,15 @@ import SwiftUI
 import AppIntents
 
 enum WidgetProviderChoice: String, AppEnum {
-    case openai, chatgpt, claude, cursor, openrouter
+    case openai, chatgpt, claude, cursor, openrouter, elevenlabs
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Provider"
-    static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [.openai: "OpenAI API", .chatgpt: "ChatGPT", .claude: "Claude", .cursor: "Cursor", .openrouter: "OpenRouter"]
+    static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [.openai: "OpenAI API", .chatgpt: "ChatGPT", .claude: "Claude", .cursor: "Cursor", .openrouter: "OpenRouter", .elevenlabs: "ElevenLabs"]
 }
 enum WidgetRowChoice: String, AppEnum {
-    case hidden, openai, chatgpt, claude, cursor, openrouter
+    case hidden, openai, chatgpt, claude, cursor, openrouter, elevenlabs
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Provider row"
     static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [
-        .hidden: "Hidden", .openai: "OpenAI API", .chatgpt: "ChatGPT", .claude: "Claude", .cursor: "Cursor", .openrouter: "OpenRouter"
+        .hidden: "Hidden", .openai: "OpenAI API", .chatgpt: "ChatGPT", .claude: "Claude", .cursor: "Cursor", .openrouter: "OpenRouter", .elevenlabs: "ElevenLabs"
     ]
 }
 struct WidgetOptions: WidgetConfigurationIntent {
@@ -25,10 +25,12 @@ struct WidgetOptions: WidgetConfigurationIntent {
     @Parameter(title: "Fourth row", default: .cursor) var fourth: WidgetRowChoice
     @Parameter(title: "Fifth row", default: .openrouter) var fifth: WidgetRowChoice
 
+    @Parameter(title: "Sixth row", default: .elevenlabs) var sixth: WidgetRowChoice
+
     func arranged(_ readings: [Reading], family: WidgetFamily) -> [Reading] {
         guard family != .systemSmall else { return readings }
         return WidgetPresentation.configuredReadings(readings,
-            selection: [first, second, third, fourth, fifth].compactMap { Provider(rawValue: $0.rawValue) }, followAppOrder: followApp)
+            selection: [first, second, third, fourth, fifth, sixth].compactMap { Provider(rawValue: $0.rawValue) }, followAppOrder: followApp)
     }
 }
 struct PulseEntry: TimelineEntry {

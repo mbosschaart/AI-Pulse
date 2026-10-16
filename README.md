@@ -8,7 +8,7 @@ A native macOS menu-bar app, floating dashboard, and WidgetKit widgets for AI su
 
 Download the **AI Pulse DMG** from [GitHub Releases](https://github.com/mbosschaart/AI-Pulse/releases/latest), open it, and drag **AI Pulse.app** to Applications. A ZIP download is also available. Requires macOS 14 or later; the floating dashboard’s native Liquid Glass styles require macOS 26 or later.
 
-Version **1.6 (build 9)** is Developer ID signed and notarized by Apple. Both the ZIP and DMG include the stapled app; checksums are available with the release.
+Version **1.7 (build 10)** is Developer ID signed and notarized by Apple. Both the ZIP and DMG include the stapled app; checksums are available with the release.
 
 ## Choose your view
 
@@ -61,7 +61,7 @@ Green confirms the most recent successful usage check is still current; it does 
 
 ## Native macOS widgets
 
-Native WidgetKit widgets are separate from the floating Cards/Compact dashboard. They require macOS 14 or later and use macOS’s preset formatting. The following tutorial covers version 1.6.
+Native WidgetKit widgets are separate from the floating Cards/Compact dashboard. They require macOS 14 or later and use macOS’s preset formatting. The following tutorial covers version 1.7.
 
 ### 1. Prepare AI Pulse
 
@@ -89,8 +89,8 @@ For Notification Center, click the date/time in the menu bar, choose **Edit Widg
 | Large | One column of provider tiles with usage and period details. |
 
 <img src="screenshots/native-widgets/small-preview.png" alt="Rendered small native widget with one provider" width="170">
-<img src="screenshots/native-widgets/medium-preview.png" alt="Rendered medium native widget with five compact provider rows" width="360">
-<img src="screenshots/native-widgets/large-preview.png" alt="Rendered large native widget with five providers in a single column" width="329">
+<img src="screenshots/native-widgets/medium-preview.png" alt="Rendered medium native widget with six compact provider rows" width="360">
+<img src="screenshots/native-widgets/large-preview.png" alt="Rendered large native widget with six providers in a single column" width="329">
 
 *Rendered examples from the actual widget views using sample data, not screenshots of the macOS gallery. macOS fixes each widget’s outer dimensions. Medium rows stay compact when providers are hidden; macOS controls the background and reserves the full medium footprint. Reset dates and secondary metric labels appear in small/large widgets, not medium.*
 
@@ -109,7 +109,7 @@ Hiding here applies across AI Pulse and pauses automatic checks for that provide
 
 To hide a row on one medium or large widget, right-click → **Edit AI Pulse** and set it to **Hidden**. This works whether Follow app order is on or off.
 
-For a separate order on one medium or large widget, right-click → **Edit AI Pulse**, turn **Follow app order** off, and choose its first through fifth rows. Choose **Hidden** for unwanted rows. Duplicate selections appear once; providers disabled globally stay hidden. Small widgets use their own provider selector.
+For a separate order on one medium or large widget, right-click → **Edit AI Pulse**, turn **Follow app order** off, and choose its first through sixth rows. Choose **Hidden** for unwanted rows. Duplicate selections appear once; providers disabled globally stay hidden. Small widgets use their own provider selector.
 
 WidgetKit does not support arbitrary row-drag gestures or app-defined context-menu commands on the desktop widget. Its right-click menu is provided by macOS. Opening AI Pulse from that menu takes you to Settings. Clicking a provider opens its Settings page. There is no Arrange button on the widget face; the drag editor lives in Settings.
 
@@ -145,6 +145,8 @@ macOS can apply monochrome or tinted widget presentation, which may alter colors
 **Claude:** sign in and choose an organization if required. Uses the lowest reported remaining session/weekly allowance; Enterprise accounts without those windows can display remaining percentage of their monthly spend allowance.
 
 **Cursor:** sign in and check the connection. Shows personal remaining allowance when available, otherwise individual billing-period usage cost. Team spending is never substituted, and usage credits are not represented as invoice charges.
+
+**ElevenLabs:** add an API key with subscription read access (User → Read) in Settings → ElevenLabs. Shows the percentage of included allowance remaining and the reset date reported by the [subscription API](https://elevenlabs.io/docs/api-reference/user/subscription/get). The key stays in macOS Keychain. Usage beyond the allowance shows 0%; overage charges and invoice totals are excluded. Missing reset dates are not estimated. ElevenLabs is available in Cards, Compact, the menu bar, and native widgets; medium/large widgets include a sixth row selector.
 
 **OpenRouter:** add a [Management API key](https://openrouter.ai/settings/management-keys) in Settings. Shows account-wide Activity total spend in USD for the current UTC month using the [Analytics API](https://openrouter.ai/docs/api/api-reference/analytics/query-analytics-data). Organization keys include organization-wide spend; use a personal-account key for personal totals. Regular inference keys cannot read account-wide analytics. Credit purchases and prepaid balances are not monthly spend. The key stays in macOS Keychain.
 

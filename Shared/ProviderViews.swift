@@ -8,6 +8,7 @@ extension Provider {
         case .chatgpt: Color(red: 0.61, green: 0.64, blue: 0.75)
         case .claude: Color(red: 0.83, green: 0.57, blue: 0.41)
         case .openrouter: Color(red: 0.42, green: 0.48, blue: 0.86)
+        case .elevenlabs: Color(red: 0.35, green: 0.35, blue: 0.38)
         case .cursor: Color(red: 0.64, green: 0.61, blue: 0.91)
         }
     }

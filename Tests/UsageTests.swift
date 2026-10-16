@@ -109,7 +109,7 @@ final class UsageTests: XCTestCase {
                        [[.claude], [.openai], [.chatgpt, .cursor]])
         XCTAssertEqual(CardArrangement.moving(.claude, relativeTo: .claude, placement: .below, in: rows), rows)
         let restored = CardArrangement.normalized([[.cursor, .cursor], [], [.claude]], including: Provider.allCases)
-        XCTAssertEqual(restored, [[.cursor], [.claude], [.openai, .chatgpt, .openrouter]])
+        XCTAssertEqual(restored, [[.cursor], [.claude], [.openai, .chatgpt, .openrouter, .elevenlabs]])
     }
     func testChatGPTSelectsTightestWindowWithMatchingReset() throws {
         let end = now.addingTimeInterval(3600).timeIntervalSince1970

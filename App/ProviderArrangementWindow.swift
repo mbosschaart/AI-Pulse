@@ -7,7 +7,7 @@ import SwiftUI
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func show(store: PulseStore) {
         if window == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 410, height: 440),
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 410, height: 492),
                                   styleMask: [.titled, .closable], backing: .buffered, defer: false)
             window.title = "Arrange AI Pulse"
             window.isReleasedWhenClosed = false
@@ -71,6 +71,6 @@ private struct ProviderArrangementView: View {
             }.coordinateSpace(name: "arrangement")
                 .onPreferenceChange(CardFramePreference.self) { frames = $0 }
             Text("Changes are saved automatically.").font(.caption).foregroundStyle(.secondary)
-        }.frame(width: 370, height: 400, alignment: .top).padding(20)
+        }.frame(width: 370, height: 452, alignment: .top).padding(20)
     }
 }

@@ -294,6 +294,11 @@ import Darwin
                         throw UsageError.unavailable("Add an OpenRouter Management API key in Settings.")
                     }
                     result = try await OpenRouterCostClient(session: SameHostRedirects.session).fetch(key: key)
+                case .elevenlabs:
+                    guard let key = try Credentials.read(provider.credentialAccount), !key.isEmpty else {
+                        throw UsageError.unavailable("Add an ElevenLabs API key in Settings.")
+                    }
+                    result = try await ElevenLabsUsageClient(session: SameHostRedirects.session).fetch(key: key)
                 case .claude:
                     var id = config.organizationID
                     if id.isEmpty {
@@ -333,7 +338,7 @@ import Darwin
             if case UsageError.unavailable = error { last.state = .unavailable }
             if transient { last.detail = UsageError.network.localizedDescription }
             else if error is UsageError { last.detail = error.localizedDescription }
-            else if provider.usesAPIKey { last.detail = "\(provider.name) could not complete the cost request (error \((error as NSError).code)). Try again." }
+            else if provider.usesAPIKey { last.detail = "\(provider.name) could not complete the usage request (error \((error as NSError).code)). Try again." }
             else { last.detail = "Could not read the provider dashboard. Open its sign-in window and try again." }
             failures[provider, default: 0] += 1
             var delay = min(3600.0, 300 * pow(2, Double(failures[provider, default: 1] - 1)))

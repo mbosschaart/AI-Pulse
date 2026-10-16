@@ -67,6 +67,13 @@ struct ConnectionsView: View {
                 Picker("Billing day", selection: $config.billingDay) { ForEach(1...31, id: \.self) { Text(String($0)).tag($0) } }.frame(width: 85)
                 Text("UTC · defaults to calendar month").font(.caption).foregroundStyle(.secondary)
             }
+        } else if store.selected == .elevenlabs {
+            Text("Use an ElevenLabs API key with subscription read access. The key stays in this Mac’s Keychain.")
+                .font(.caption).foregroundStyle(.secondary)
+            Link("Open ElevenLabs API keys", destination: URL(string: "https://elevenlabs.io/app/settings/api-keys")!)
+            SecureField("API key · leave blank to keep saved key", text: $key).textFieldStyle(.roundedBorder)
+            Text("Shows the percentage of included subscription allowance remaining and the provider-reported reset date. Overage charges are not included; exhausted allowance shows 0%.")
+                .font(.caption).foregroundStyle(.secondary)
         } else if store.selected == .openrouter {
             Text("Use a Management API key to read account-wide Activity spend for the current UTC month. For organization accounts this includes the whole organization. The key stays in this Mac’s Keychain.")
                 .font(.caption).foregroundStyle(.secondary)

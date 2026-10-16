@@ -2,14 +2,14 @@ import Foundation
 import CoreGraphics
 
 enum Provider: String, Codable, CaseIterable, Identifiable, Sendable {
-    case openai, chatgpt, claude, cursor, openrouter
+    case openai, chatgpt, claude, cursor, openrouter, elevenlabs
     var id: String { rawValue }
     var name: String {
-        switch self { case .openai: "OpenAI API"; case .chatgpt: "ChatGPT"; case .claude: "Claude"; case .cursor: "Cursor"; case .openrouter: "OpenRouter" }
+        switch self { case .openai: "OpenAI API"; case .chatgpt: "ChatGPT"; case .claude: "Claude"; case .cursor: "Cursor"; case .openrouter: "OpenRouter"; case .elevenlabs: "ElevenLabs" }
     }
-    var usesAPIKey: Bool { self == .openai || self == .openrouter }
+    var usesAPIKey: Bool { self == .openai || self == .openrouter || self == .elevenlabs }
     var credentialAccount: String { rawValue + "-key" }
-    var defaultMetricKind: MetricKind { usesAPIKey ? .cost : .remaining }
+    var defaultMetricKind: MetricKind { (self == .openai || self == .openrouter) ? .cost : .remaining }
     var logo: String { self == .chatgpt ? "openai" : rawValue }
     var website: URL {
         let address = switch self {
@@ -18,6 +18,7 @@ enum Provider: String, Codable, CaseIterable, Identifiable, Sendable {
         case .claude: "https://claude.ai/new#settings/usage"
         case .cursor: "https://cursor.com/dashboard/usage"
         case .openrouter: "https://openrouter.ai/activity"
+        case .elevenlabs: "https://elevenlabs.io/app/subscription"
         }
         return URL(string: address)!
     }

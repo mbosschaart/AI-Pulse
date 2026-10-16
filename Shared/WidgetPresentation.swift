@@ -38,9 +38,9 @@ enum WidgetPresentation {
     static func samples(at now: Date) -> [Reading] {
         Provider.allCases.enumerated().map { index, provider in
             Reading(provider: provider, kind: provider.defaultMetricKind,
-                    value: provider.usesAPIKey ? 12.34 : Double(85 - index * 12),
+                    value: provider.defaultMetricKind == .cost ? 12.34 : Double(85 - index * 12),
                     periodEnd: now.addingTimeInterval(86_400 * 7),
-                    window: provider.usesAPIKey ? "" : "weekly", fetchedAt: now,
+                    window: provider.defaultMetricKind == .cost ? "" : (provider == .elevenlabs ? "included allowance" : "weekly"), fetchedAt: now,
                     state: .ready, detail: "Preview data")
         }
     }
